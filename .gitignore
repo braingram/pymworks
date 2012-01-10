@@ -1,2 +1,5 @@
 *.pyc
 *.mwk
+build/
+dist/
+pymworks.egg-info/
