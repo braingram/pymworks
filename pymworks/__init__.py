@@ -59,10 +59,11 @@ class DataFile:
         if len(codecs) == 0:
             raise ValueError("Unable to find codec")
         elif len(codecs) > 1:
-            logging.warning("File contains more than one codec")
+            #logging.warning("File contains more than one codec")
             for other_codec in codecs[1:]:
                 if codecs[0][2] != other_codec[2]:
-                    logging.warning("codecs differed")
+                    logging.error("File contains two codecs that differ")
+                    raise Exception("File contains two codecs that differ")
 
         # parse codec event into codec
         raw_codec = codecs[-1][2] # TODO: sort out what to do with multiple codecs
