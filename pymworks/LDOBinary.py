@@ -15,6 +15,7 @@ converting types between on-the-wire types and internal types.
 from ScarabMarshal import *
 from types import *
 import string
+import struct
 import numpy as np
 
 MAGIC            = "\x89" + "CBF"
@@ -213,6 +214,7 @@ class LDOBinaryUnmarshaler(Unmarshaler):
                 raise EOFError
 
         try:
+            #print "Dispatching key: %s" % hex(ord(key))
             item = self.um_dispatch[key](self)
         except KeyError:
             raise ValueError, \
@@ -295,7 +297,16 @@ class LDOBinaryUnmarshaler(Unmarshaler):
         # TODO: figure out how this differs from a normal opaque
         #raise NotImplemented, "I don't know what an opaque is"
         l = self.decode_ber()
-        return(self.read(l).strip('\x00'))
+        # how many bytes make up this float
+        #print "Float had %i bytes" % l
+        char_str = self.read(l)
+        if l == 4:
+            return struct.unpack('f', char_str)[0]
+        elif l == 8:
+            return struct.unpack('d', char_str)[0]
+        else:
+            raise ValueError("Cannot unpack float_opaque with len %s" % l)
+        #return(self.read(l).strip('\x00'))
     um_dispatch[FLOAT_OPAQUE] = um_float_opaque
 
     def um_none(self):
