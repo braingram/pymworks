@@ -186,6 +186,28 @@ class IndexedDataFile(DataFile):
         return events
 
 
+def events_to_code_time_values(events):
+    """
+    Returns three tuples: codes, times, values
+    """
+    return zip(*events)
+
+
+def to_array(events, value_type=None):
+    """
+    Convert a list of pymworks events to a numpy array with fields:
+        'code' : type = 'u2'
+        'time' : type = 'u8'
+        'value': type = value_type or type(events[0].value) or 'u1'
+    """
+    if value_type is None:
+        vtype = type(events[0].value) if len(events) else 'u1'
+    else:
+        vtype = value_type
+    return numpy.array(map(tuple, events), dtype=[('code', 'u2'), \
+            ('time', 'u8'), ('value', vtype)])
+
+
 def open_file(filename, indexed=True):
     if indexed:
         return IndexedDataFile(filename)
