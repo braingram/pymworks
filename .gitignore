@@ -1,5 +1,6 @@
 *.pyc
 *.mwk
+*.swp
 build/
 dist/
 pymworks.egg-info/
