@@ -7,12 +7,13 @@ import pickle
 
 import LDOBinary
 
+
 class DataFile:
     def __init__(self, filename):
         self.filename = filename
         self.file = open(self.filename, 'rb')
         self.ldo = LDOBinary.LDOBinaryUnmarshaler(self.file)
-        self.restart() # call this to properly run um_init
+        self.restart()  # call this to properly run um_init
         self.codec = None
 
     def restart(self):
@@ -27,9 +28,9 @@ class DataFile:
         """ Get the next event in the file"""
         try:
             return self.ldo.load()
-        except EOFError as E:
+        except EOFError:
             return None
-    
+
     def lookup_event_code(self, name):
         """ Lookup code for an event name """
         # search dictionary by values
@@ -55,7 +56,7 @@ class DataFile:
 
     def find_codec(self):
         """ Search the file for the codec """
-        codecs = self.get_events_by_code(0) # codec code is 0
+        codecs = self.get_events_by_code(0)  # codec code is 0
         if len(codecs) == 0:
             raise ValueError("Unable to find codec")
         elif len(codecs) > 1:
@@ -66,7 +67,8 @@ class DataFile:
                     raise Exception("File contains two codecs that differ")
 
         # parse codec event into codec
-        raw_codec = codecs[-1][2] # TODO: sort out what to do with multiple codecs
+        # TODO: sort out what to do with multiple codecs
+        raw_codec = codecs[-1][2]
         codec = {}
         for k, v in raw_codec.iteritems():
             codec[k] = v['tagname']
@@ -87,6 +89,7 @@ class DataFile:
             self.codec = self.find_codec()
         return self.codec
 
+
 class IndexedDataFile(DataFile):
     """
     Indexed data file reader class
@@ -102,15 +105,17 @@ class IndexedDataFile(DataFile):
 
     def load_index(self):
         """ Load index from files """
-        index_filename = '%s/.%s.index' % os.path.split(os.path.realpath(self.filename))
+        index_filename = '%s/.%s.index' % \
+                os.path.split(os.path.realpath(self.filename))
         if os.path.exists(index_filename):
             try:
                 with open(index_filename, 'rb') as index_file:
                     self.event_index = pickle.load(index_file)
                     if type(self.event_index) != collections.defaultdict:
                         wrong_type = type(self.event_index)
-                        raise TypeError("loaded event_index(%s) was wrong type: %s" % \
-                                (index_filename, str(wrong_type)))
+                        raise TypeError("loaded event_index(%s) was "
+                                "wrong type: %s" % \
+                                        (index_filename, str(wrong_type)))
             except Exception as E:
                 logging.warning("Failed to load index file(%s): %s" % \
                         (index_filename, str(E)))
@@ -145,4 +150,3 @@ class IndexedDataFile(DataFile):
             self.file.seek(file_position)
             events.append(self.get_next_event())
         return events
-
