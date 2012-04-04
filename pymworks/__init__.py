@@ -31,6 +31,8 @@ class DataFile:
         self.ldo = LDOBinary.LDOBinaryUnmarshaler(self.file)
         self.restart()  # call this to properly run um_init
         self._codec = None
+        self._maxtime = None
+        self._mintime = None
 
     def restart(self):
         """ Restart reading the file from the beginning """
@@ -116,6 +118,40 @@ class DataFile:
 
     codec = property(get_codec)
 
+    def events(self, name, time_range=[-1, numpy.inf]):
+        return self.get_events_by_name(name, time_range)
+
+    def get_maximum_time(self):
+        if self._maxtime is None:
+            self._maxtime = self.find_maximum_time()
+        return self._maxtime
+
+    def get_minimum_time(self):
+        if self._mintime is None:
+            self._mintime = self.find_minimum_time()
+        return self._mintime
+
+    def find_minimum_time(self):
+        self.restart()
+        event = self.get_next_event()
+        if event is None:
+            raise ValueError('File[%s] contains no events' % self.filename)
+        return event.time
+
+    def find_maximum_time(self):
+        self.restart()
+        maxtime = None
+        event = self.get_next_event()
+        while event is not None:
+            maxtime = event.time
+            event = self.get_next_event()
+        if maxtime is None:
+            raise ValueError('File[%s] contains no events' % self.filename)
+        return maxtime
+
+    minimum_time = property(get_minimum_time)
+    maximum_time = property(get_maximum_time)
+
 
 class IndexedDataFile(DataFile):
     """
@@ -184,6 +220,11 @@ class IndexedDataFile(DataFile):
                     (event.time < time_range[1]):
                 events.append(event)
         return events
+
+    def find_maximum_time(self):
+        max_position = max([max(p) for p in self.event_index.values()])
+        self.file.seek(max_position)
+        return self.get_next_event().time
 
 
 def events_to_code_time_values(events):
