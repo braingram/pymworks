@@ -7,6 +7,22 @@ import pickle
 
 import LDOBinary
 
+import numpy
+
+
+class Event(list):
+    @property
+    def code(self):
+        return self[0]
+
+    @property
+    def time(self):
+        return self[1]
+
+    @property
+    def value(self):
+        return self[2]
+
 
 class DataFile:
     def __init__(self, filename):
@@ -14,7 +30,7 @@ class DataFile:
         self.file = open(self.filename, 'rb')
         self.ldo = LDOBinary.LDOBinaryUnmarshaler(self.file)
         self.restart()  # call this to properly run um_init
-        self.codec = None
+        self._codec = None
 
     def restart(self):
         """ Restart reading the file from the beginning """
@@ -27,32 +43,41 @@ class DataFile:
     def get_next_event(self):
         """ Get the next event in the file"""
         try:
-            return self.ldo.load()
+            return Event(self.ldo.load())
         except EOFError:
             return None
 
     def lookup_event_code(self, name):
         """ Lookup code for an event name """
         # search dictionary by values
-        return [k for k, v in self.get_codec().iteritems() if v == name][0]
+        try:
+            return [k for k, v in self.get_codec().iteritems() if v == name][0]
+        except IndexError:
+            raise ValueError("Event[%s] not found in codec" % name)
 
     def lookup_event_name(self, code):
         """ Lookup name for a event code """
         return self.get_codec()[code]
 
-    def get_events_by_code(self, code):
-        """ Search the file for all events with code == code """
+    def get_events_by_code(self, code, time_range=[-1, numpy.inf]):
+        """
+        Search the file for all events with:
+            code == code
+            time in time_range (exclusive)
+        """
         self.restart()
         event = self.get_next_event()
         events = []
         while not (event is None):
-            if event[0] == code:
+            if (event.code == code) and (event.time > time_range[0]) \
+                    and (event.time < time_range[1]):
                 events.append(event)
             event = self.get_next_event()
         return events
 
-    def get_events_by_name(self, name):
-        return self.get_events_by_code(self.lookup_event_code(name))
+    def get_events_by_name(self, name, time_range=[-1, numpy.inf]):
+        return self.get_events_by_code(\
+                self.lookup_event_code(name), time_range)
 
     def find_codec(self):
         """ Search the file for the codec """
@@ -85,9 +110,11 @@ class DataFile:
         Return the files codec
         If not previously found this function will search for the codec
         """
-        if self.codec is None:
-            self.codec = self.find_codec()
-        return self.codec
+        if self._codec is None:
+            self._codec = self.find_codec()
+        return self._codec
+
+    codec = property(get_codec)
 
 
 class IndexedDataFile(DataFile):
@@ -133,7 +160,7 @@ class IndexedDataFile(DataFile):
         event = self.get_next_event()
         while not (event is None):
             # record file position of event
-            self.event_index[event[0]].append(position)
+            self.event_index[event.code].append(position)
             # get next event
             position = self.file.tell()
             event = self.get_next_event()
@@ -143,10 +170,24 @@ class IndexedDataFile(DataFile):
             pickle.dump(self.event_index, index_file, 2)
 
     # overload event fetching to use index
-    def get_events_by_code(self, code):
-        """ Search the file for all events with code == code """
+    def get_events_by_code(self, code, time_range=[-1, numpy.inf]):
+        """
+        Search the file for all events with:
+            code == code
+            time in time_range (exclusive)
+        """
         events = []
         for file_position in self.event_index[code]:
             self.file.seek(file_position)
-            events.append(self.get_next_event())
+            event = self.get_next_event()
+            if (event.time > time_range[0]) and \
+                    (event.time < time_range[1]):
+                events.append(event)
         return events
+
+
+def open_file(filename, indexed=True):
+    if indexed:
+        return IndexedDataFile(filename)
+    else:
+        return DataFile(filename)
