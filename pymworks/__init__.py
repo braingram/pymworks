@@ -231,6 +231,7 @@ def events_to_code_time_values(events):
     """
     Returns three tuples: codes, times, values
     """
+    raise Exception("Doesn't work")
     return zip(*events)
 
 
