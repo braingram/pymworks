@@ -75,7 +75,7 @@ class DataFile:
                     and (event.time < time_range[1]):
                 events.append(event)
             event = self.get_next_event()
-        return events
+        return sorted(events, key=lambda e: e.time)
 
     def get_events_by_name(self, name, time_range=[-1, numpy.inf]):
         return self.get_events_by_code(\
@@ -121,33 +121,38 @@ class DataFile:
     def events(self, name, time_range=[-1, numpy.inf]):
         return self.get_events_by_name(name, time_range)
 
+    def ievents(self, name, time_range=[-1, numpy.inf]):
+        c = self.codec  # just to make sure it's cached
+        self.restart()
+        e = self.get_next_event()
+        while e is not None:
+            if (e.time > time_range[0]) and (e.time < time_range[1]) and \
+                    (self.lookup_event_name(e.code) == name):
+                yield e
+            e = self.get_next_event()
+
     def get_maximum_time(self):
         if self._maxtime is None:
-            self._maxtime = self.find_maximum_time()
+            self._mintime, self._maxtime = self.find_time_range()
         return self._maxtime
 
     def get_minimum_time(self):
         if self._mintime is None:
-            self._mintime = self.find_minimum_time()
+            self._mintime, self._maxtime = self.find_time_range()
         return self._mintime
 
-    def find_minimum_time(self):
+    def find_time_range(self):
         self.restart()
         event = self.get_next_event()
         if event is None:
             raise ValueError('File[%s] contains no events' % self.filename)
-        return event.time
-
-    def find_maximum_time(self):
-        self.restart()
-        maxtime = None
-        event = self.get_next_event()
+        mintime = event.time
+        maxtime = event.time
         while event is not None:
-            maxtime = event.time
+            mintime = min(event.time, mintime)
+            maxtime = max(event.time, maxtime)
             event = self.get_next_event()
-        if maxtime is None:
-            raise ValueError('File[%s] contains no events' % self.filename)
-        return maxtime
+        return mintime, maxtime
 
     minimum_time = property(get_minimum_time)
     maximum_time = property(get_maximum_time)
@@ -219,20 +224,16 @@ class IndexedDataFile(DataFile):
             if (event.time > time_range[0]) and \
                     (event.time < time_range[1]):
                 events.append(event)
-        return events
+        return sorted(events, key=lambda e: e.time)
 
-    def find_maximum_time(self):
-        max_position = max([max(p) for p in self.event_index.values()])
-        self.file.seek(max_position)
-        return self.get_next_event().time
-
-
-def events_to_code_time_values(events):
-    """
-    Returns three tuples: codes, times, values
-    """
-    raise Exception("Doesn't work")
-    return zip(*events)
+    def ievents(self, name, time_range=[-1, numpy.inf]):
+        code = self.lookup_event_name(name)
+        for file_position in self.event_index[code]:
+            self.file.seek(file_position)
+            event = self.get_next_event()
+            if (event.time > time_range[0]) and \
+                    (event.time < time_range[1]):
+                        yield event
 
 
 def to_array(events, value_type=None):
