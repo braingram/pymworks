@@ -4,3 +4,5 @@
 build/
 dist/
 pymworks.egg-info/
+test/*.mwk
+test/*.mwk.index
