@@ -34,78 +34,123 @@ class DataFile:
         self._maxtime = None
         self._mintime = None
 
+    # ------  file handling  ------
     def restart(self):
         """ Restart reading the file from the beginning """
         self.file.seek(0)
         self.ldo.read_stream_header = 0
         self.ldo.um_init()
-        #del self.ldo
-        #self.ldo = LDOBinary.LDOBinaryUnmarshaler(self.file)
 
-    def get_next_event(self):
+    def close(self):
+        del self.ldo
+        self.file.close()
+
+    # ------  event handling  ------
+    def next_event(self):
         """ Get the next event in the file"""
         try:
             return Event(self.ldo.load())
         except EOFError:
             return None
 
-    def lookup_event_code(self, name):
+    def to_code(self, name):
         """ Lookup code for an event name """
-        # search dictionary by values
         try:
-            return [k for k, v in self.get_codec().iteritems() if v == name][0]
+            return self.rcodec[name]
         except IndexError:
-            raise ValueError("Event[%s] not found in codec" % name)
+            raise ValueError("Event Name[%s] not found in codec" % name)
 
-    def lookup_event_name(self, code):
+    def to_name(self, code):
         """ Lookup name for a event code """
-        return self.get_codec()[code]
+        try:
+            return self.codec[code]
+        except IndexError:
+            raise ValueError("Event Code[%i] not found in codec" % code)
 
-    def get_events_by_code(self, code, time_range=[-1, numpy.inf]):
-        """
-        Search the file for all events with:
-            code == code
-            time in time_range (exclusive)
-        """
+    def get_all_events(self):
         self.restart()
-        event = self.get_next_event()
-        events = []
-        while not (event is None):
-            if (event.code == code) and (event.time > time_range[0]) \
-                    and (event.time < time_range[1]):
-                events.append(event)
-            event = self.get_next_event()
+        event = self.next_event()
+        while event is not None:
+            yield event
+            event = self.next_event()
+
+    all_events = property(get_all_events)
+
+    def key_to_test(self, key):
+        """
+        Convert an event key (either code[int] or name[str]) to a test function
+        that returns True if a passed in event matches the key
+
+        key can any of these types:
+            int, numpy.integer
+            str, numpy.str
+            list, tuple, ndarray of str or int or mix of str & int
+        """
+        if key is None:
+            return lambda e: True
+        elif isinstance(key, str):
+            return self.key_to_test(self.to_code(key))
+        elif isinstance(key, (int, numpy.integer)):
+            return lambda e: e.code == key
+        elif isinstance(key, (tuple, list, numpy.ndarray)):
+            codes = map(lambda k: self.to_code(k) if isinstance(k, str) \
+                    else k, key)
+            return lambda e: e.code in codes
+
+    def time_range_to_test(self, time_range):
+        """
+        Convert a time_range (2 length tuple/list/ndarray) to a test function
+        that returns True if a passed in event falls within the time range:
+            time_range[0] < time < time_range[1]
+        """
+        if time_range is None:
+            return lambda e: True
+        elif isinstance(time_range, (tuple, list, numpy.ndarray)):
+            if len(time_range) != 2:
+                raise ValueError("Time range [len:%i] must be length 2" % \
+                        len(time_range))
+            return lambda e: time_range[0] < e.time < time_range[1]
+
+    def get_events(self, key=None, time_range=None):
+        if key is None:
+            if time_range is None:
+                events = self.all_events
+            else:
+                events = filter(self.time_range_to_test(time_range), \
+                        self.all_events)
+        else:  # key is not None
+            if time_range is None:
+                events = filter(self.key_to_test(key), \
+                        self.all_events)
+            else:
+                kt = self.key_to_test(key)
+                tt = self.time_range_to_test(time_range)
+                events = filter(lambda e: (kt(e) and tt(e)), \
+                        self.all_events)
         return sorted(events, key=lambda e: e.time)
 
-    def get_events_by_name(self, name, time_range=[-1, numpy.inf]):
-        return self.get_events_by_code(\
-                self.lookup_event_code(name), time_range)
+    def events(self, *args, **kwargs):
+        return self.get_events(*args, **kwargs)
 
+    # ------  codec handling ------
     def find_codec(self):
         """ Search the file for the codec """
-        codecs = self.get_events_by_code(0)  # codec code is 0
+        codecs = self.get_events(0)
+        #codecs = self.get_events_by_code(0)  # codec code is 0
         if len(codecs) == 0:
             raise ValueError("Unable to find codec")
         elif len(codecs) > 1:
-            #logging.warning("File contains more than one codec")
+            logging.warning("File contains more than one codec")
             for other_codec in codecs[1:]:
                 if codecs[0][2] != other_codec[2]:
                     logging.error("File contains two codecs that differ")
                     raise Exception("File contains two codecs that differ")
 
-        # parse codec event into codec
-        # TODO: sort out what to do with multiple codecs
-        raw_codec = codecs[-1][2]
-        codec = {}
-        for k, v in raw_codec.iteritems():
-            codec[k] = v['tagname']
-
-        # add missing items, codec[0], codec[1], codec[2]
-        codec[0] = '#codec'
-        codec[1] = '#systemEvent'
-        codec[2] = '#components'
-        codec[3] = '#termination'
-        return codec
+        # parse codec event into codec and add missing values
+        return dict([(k, v['tagname']) for k, v in \
+                codecs[-1].value.iteritems()] + \
+                [(0, '#codec'), (1, '#systemEvent'), \
+                (2, '#components'), (3, '#termination')])
 
     def get_codec(self):
         """
@@ -113,24 +158,22 @@ class DataFile:
         If not previously found this function will search for the codec
         """
         if self._codec is None:
-            self._codec = self.find_codec()
+            position = self.file.tell()
+            try:
+                self._codec = self.find_codec()
+            except Exception as E:
+                self.file.seek(position)
+                raise E
         return self._codec
 
     codec = property(get_codec)
 
-    def events(self, name, time_range=[-1, numpy.inf]):
-        return self.get_events_by_name(name, time_range)
+    def get_reverse_codec(self):
+        return dict([(v, k) for k, v in self.codec.iteritems()])
 
-    def ievents(self, name, time_range=[-1, numpy.inf]):
-        c = self.codec  # just to make sure it's cached
-        self.restart()
-        e = self.get_next_event()
-        while e is not None:
-            if (e.time > time_range[0]) and (e.time < time_range[1]) and \
-                    (self.lookup_event_name(e.code) == name):
-                yield e
-            e = self.get_next_event()
+    rcodec = property(get_reverse_codec)
 
+    # ------  time handling ------
     def get_maximum_time(self):
         if self._maxtime is None:
             self._mintime, self._maxtime = self.find_time_range()
@@ -142,16 +185,20 @@ class DataFile:
         return self._mintime
 
     def find_time_range(self):
-        self.restart()
-        event = self.get_next_event()
-        if event is None:
-            raise ValueError('File[%s] contains no events' % self.filename)
-        mintime = event.time
-        maxtime = event.time
-        while event is not None:
-            mintime = min(event.time, mintime)
-            maxtime = max(event.time, maxtime)
-            event = self.get_next_event()
+        """
+        Find minimum and maximum event times
+        """
+        position = self.file.tell()
+        try:
+            mintime = numpy.inf
+            maxtime = 0
+            for event in self.all_events:
+                mintime = min(event.time, mintime)
+                maxtime = max(event.time, maxtime)
+        except Exception as E:
+            self.file.seek(position)
+            raise E
+        self.file.seek(position)
         return mintime, maxtime
 
     minimum_time = property(get_minimum_time)
@@ -198,13 +245,13 @@ class IndexedDataFile(DataFile):
         self.event_index = collections.defaultdict(list)
         self.restart()
         position = self.file.tell()
-        event = self.get_next_event()
+        event = self.next_event()
         while not (event is None):
             # record file position of event
             self.event_index[event.code].append(position)
             # get next event
             position = self.file.tell()
-            event = self.get_next_event()
+            event = self.next_event()
 
         # save index to file
         with open(index_filename, 'wb') as index_file:
@@ -220,17 +267,17 @@ class IndexedDataFile(DataFile):
         events = []
         for file_position in self.event_index[code]:
             self.file.seek(file_position)
-            event = self.get_next_event()
+            event = self.next_event()
             if (event.time > time_range[0]) and \
                     (event.time < time_range[1]):
                 events.append(event)
         return sorted(events, key=lambda e: e.time)
 
     def ievents(self, name, time_range=[-1, numpy.inf]):
-        code = self.lookup_event_name(name)
+        code = self.to_code(name)
         for file_position in self.event_index[code]:
             self.file.seek(file_position)
-            event = self.get_next_event()
+            event = self.next_event()
             if (event.time > time_range[0]) and \
                     (event.time < time_range[1]):
                         yield event
