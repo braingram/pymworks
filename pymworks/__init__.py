@@ -25,6 +25,14 @@ class Event(list):
 
 
 class DataFile:
+    """
+    Pure python, non-indexed data file reader
+
+    To use:
+        f = DataFile(filename)
+        events = f.events('foo')
+        events[0].time
+    """
     def __init__(self, filename):
         self.filename = filename
         self.file = open(self.filename, 'rb')
@@ -111,30 +119,57 @@ class DataFile:
                         len(time_range))
             return lambda e: time_range[0] < e.time < time_range[1]
 
+    def get_time_filtered_events(self, time_range):
+        return filter(self.time_range_to_test(time_range), self.all_events)
+
+    def get_key_filtered_events(self, key):
+        return filter(self.key_to_test(key), self.all_events)
+
+    def get_key_and_time_filtered_events(self, key, time_range):
+        kt = self.key_to_test(key)
+        tt = self.time_range_to_test(time_range)
+        return filter(lambda e: (kt(e) and tt(e)), self.all_events)
+
     def get_events(self, key=None, time_range=None):
+        """
+        Get all events where:
+            key_to_test(key)(event) == True
+            and
+            time_range_to_test(time_range)(event) == True
+
+        key can any of these types:
+            int, numpy.integer
+            str, numpy.str
+            list, tuple, ndarray of str or int or mix of str & int
+
+        time_range (2 length tuple/list/ndarray) of times
+        """
         if key is None:
             if time_range is None:
                 events = self.all_events
             else:
-                events = filter(self.time_range_to_test(time_range), \
-                        self.all_events)
+                events = self.get_time_filtered_events(time_range)
         else:  # key is not None
             if time_range is None:
-                events = filter(self.key_to_test(key), \
-                        self.all_events)
+                events = self.get_key_filtered_events(key)
             else:
-                kt = self.key_to_test(key)
-                tt = self.time_range_to_test(time_range)
-                events = filter(lambda e: (kt(e) and tt(e)), \
-                        self.all_events)
+                events = self.get_key_and_time_filtered_events(key, time_range)
         return sorted(events, key=lambda e: e.time)
 
     def events(self, *args, **kwargs):
+        """
+        shortcut to get_events
+        """
         return self.get_events(*args, **kwargs)
 
     # ------  codec handling ------
     def find_codec(self):
-        """ Search the file for the codec """
+        """
+        Search the file for the codec.
+        Codec is a dictionary with:
+            key : event code [int]
+            val : event name [str]
+        """
         codecs = self.get_events(0)
         #codecs = self.get_events_by_code(0)  # codec code is 0
         if len(codecs) == 0:
@@ -154,8 +189,8 @@ class DataFile:
 
     def get_codec(self):
         """
-        Return the files codec
-        If not previously found this function will search for the codec
+        Return the codec
+        If not previously found this function will call find_codec
         """
         if self._codec is None:
             position = self.file.tell()
@@ -169,17 +204,28 @@ class DataFile:
     codec = property(get_codec)
 
     def get_reverse_codec(self):
+        """
+        Return a reversed codec where:
+            key : event name [str]
+            val : event code [int]
+        """
         return dict([(v, k) for k, v in self.codec.iteritems()])
 
     rcodec = property(get_reverse_codec)
 
     # ------  time handling ------
     def get_maximum_time(self):
+        """
+        Return the (potentially cached) maximum event time
+        """
         if self._maxtime is None:
             self._mintime, self._maxtime = self.find_time_range()
         return self._maxtime
 
     def get_minimum_time(self):
+        """
+        Return the (potentially cached) minimum event time
+        """
         if self._mintime is None:
             self._mintime, self._maxtime = self.find_time_range()
         return self._mintime
@@ -187,6 +233,10 @@ class DataFile:
     def find_time_range(self):
         """
         Find minimum and maximum event times
+
+        Returns
+        -------
+            min_time, max_time
         """
         position = self.file.tell()
         try:
@@ -225,12 +275,13 @@ class IndexedDataFile(DataFile):
         if os.path.exists(index_filename):
             try:
                 with open(index_filename, 'rb') as index_file:
-                    self.event_index = pickle.load(index_file)
-                    if type(self.event_index) != collections.defaultdict:
-                        wrong_type = type(self.event_index)
-                        raise TypeError("loaded event_index(%s) was "
+                    self._index = pickle.load(index_file)
+                    if type(self._index) != dict:
+                        wrong_type = type(self._index)
+                        raise TypeError("loaded index(%s) was "
                                 "wrong type: %s" % \
                                         (index_filename, str(wrong_type)))
+                    self.parse_index()
             except Exception as E:
                 logging.warning("Failed to load index file(%s): %s" % \
                         (index_filename, str(E)))
@@ -242,45 +293,67 @@ class IndexedDataFile(DataFile):
     def index_file(self, index_filename):
         """ Create an index of the file """
         logging.info("indexing file: %s" % self.filename)
-        self.event_index = collections.defaultdict(list)
+        self._index = collections.defaultdict(list)
+        # need to do this manually (rather than calling all_events)
+        # to keep track of the file position
         self.restart()
         position = self.file.tell()
         event = self.next_event()
-        while not (event is None):
-            # record file position of event
-            self.event_index[event.code].append(position)
-            # get next event
+        while event is not None:
+            self._index[event.code].append(position)
             position = self.file.tell()
             event = self.next_event()
 
+        self._index = dict(self._index)
+
+        # get codec and time ranges
+        self._index.update({'_codec': self.codec, \
+                '_mintime': self.minimum_time, '_maxtime': self.maximum_time})
+
+        self.parse_index()
+
         # save index to file
         with open(index_filename, 'wb') as index_file:
-            pickle.dump(self.event_index, index_file, 2)
+            pickle.dump(self._index, index_file, 2)
+
+    def parse_index(self):
+        self._codec = self._index['_codec']
+        self._mintime = self._index['_mintime']
+        self._maxtime = self._index['_maxtime']
+
+    def get_event_at(self, position):
+        """
+        Return an event at a file position
+        """
+        self.file.seek(position)
+        return self.next_event()
 
     # overload event fetching to use index
-    def get_events_by_code(self, code, time_range=[-1, numpy.inf]):
-        """
-        Search the file for all events with:
-            code == code
-            time in time_range (exclusive)
-        """
-        events = []
-        for file_position in self.event_index[code]:
-            self.file.seek(file_position)
-            event = self.next_event()
-            if (event.time > time_range[0]) and \
-                    (event.time < time_range[1]):
-                events.append(event)
-        return sorted(events, key=lambda e: e.time)
+    def get_key_filtered_events(self, key):
+        if isinstance(key, str):
+            codes = [self.to_code(key)]
+        elif isinstance(key, (int, numpy.integer)):
+            codes = [key]
+        elif isinstance(key, (tuple, list, numpy.ndarray)):
+            codes = map(lambda k: self.to_code(k) if isinstance(k, str) \
+                    else k, key)
+        return reduce(lambda x, y: x + y, [\
+                [self.get_event_at(p) for p in self._index[code]] \
+                for code in codes])
 
-    def ievents(self, name, time_range=[-1, numpy.inf]):
-        code = self.to_code(name)
-        for file_position in self.event_index[code]:
-            self.file.seek(file_position)
-            event = self.next_event()
-            if (event.time > time_range[0]) and \
-                    (event.time < time_range[1]):
-                        yield event
+    def get_key_and_time_filtered_events(self, key, time_range):
+        tt = self.time_range_to_test(time_range)
+        return [e for e in self.get_key_filtered_events(key) if tt(e)]
+
+
+def unpack_events(events):
+    """
+    Unpack events into three tuples (codes, times, values)
+
+    Returns:
+        codes, times, values
+    """
+    return zip(*map(tuple, events))
 
 
 def to_array(events, value_type=None):
