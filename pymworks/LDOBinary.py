@@ -239,7 +239,7 @@ class LDOBinaryUnmarshaler(Unmarshaler):
         return item
 
     def decode_ber(self):
-        d = long(0)
+        d = 0
         a_byte = self.read(1)
         if a_byte == '':
             raise EOFError
