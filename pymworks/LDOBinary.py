@@ -45,6 +45,7 @@ FLOAT_OPAQUE     = "\x11"
 
 TYPE_ATTR        = 'type'
 
+
 class LDOBinaryMarshaler(Marshaler):
 
     def __init__(self, stream):
@@ -56,7 +57,8 @@ class LDOBinaryMarshaler(Marshaler):
         if not self.written_stream_header:
             self.written_stream_header = 1
             self.write(MAGIC)
-            self.write(VERSION + self.encode_ber(MAJOR) + self.encode_ber(MINOR))
+            self.write(VERSION + self.encode_ber(MAJOR) + \
+                    self.encode_ber(MINOR))
 
     def persistent_id(self, object):
         return None
@@ -78,13 +80,14 @@ class LDOBinaryMarshaler(Marshaler):
             return self.encode_ber_high(d) + chr(d1 | 0x80)
 
     def encode_opaque(self, str):
-        self.write (OPAQUE + self.encode_ber(len(str)) + str)
+        self.write(OPAQUE + self.encode_ber(len(str)) + str)
 
     def encode_float_opaque(self, str):
-        self.write (FLOAT_OPAQUE + self.encode_ber(len(str)) + str)
+        self.write(FLOAT_OPAQUE + self.encode_ber(len(str)) + str)
 
     def m_reference(self, object, dict):
-        self.write(REFERENCE + self.encode_ber(string.atoi(dict[str(id(object))])))
+        self.write(REFERENCE + \
+                self.encode_ber(string.atoi(dict[str(id(object))])))
 
     def m_None(self, object, dict):
         self.write(NULL)
@@ -102,17 +105,20 @@ class LDOBinaryMarshaler(Marshaler):
             self.write(INTEGER_N + self.encode_ber(-object))
 
     def m_float(self, object, dict):
-        self.encode_opaque(`object`)
+        self.encode_opaque(repr(object))
 
     def m_complex(self, object, dict):
-        self.encode_opaque(`object`)
+        self.encode_opaque(repr(object))
 
     def m_string(self, object, dict):
         self.encode_opaque(object)
 
     def m_list(self, object, dict):
-        dict['id'] = dict['id'] + 1 ; idnum = dict['id'] ; i = str(idnum)
-        dict[ str(id(object)) ] = i ; dict[ i ] = object
+        dict['id'] = dict['id'] + 1
+        idnum = dict['id']
+        i = str(idnum)
+        dict[str(id(object))] = i
+        dict[i] = object
         self.write(DEFINE_REFERENCE + self.encode_ber(idnum))
         self.write(LIST)
         n = len(object)
@@ -121,8 +127,11 @@ class LDOBinaryMarshaler(Marshaler):
             self._marshal(object[k], dict)
 
     def m_tuple(self, object, dict):
-        dict['id'] = dict['id'] + 1 ; idnum = dict['id'] ; i = str(idnum)
-        dict[ str(id(object)) ] = i ; dict[ i ] = object
+        dict['id'] = dict['id'] + 1
+        idnum = dict['id']
+        i = str(idnum)
+        dict[str(id(object))] = i
+        dict[i] = object
         self.write(DEFINE_REFERENCE + self.encode_ber(idnum))
         self.write(LIST)
         n = len(object)
@@ -131,8 +140,11 @@ class LDOBinaryMarshaler(Marshaler):
             self._marshal(object[k], dict)
 
     def m_dictionary(self, object, dict):
-        dict['id'] = dict['id'] + 1 ; idnum = dict['id'] ; i = str(idnum)
-        dict[ str(id(object)) ] = i ; dict[ i ] = object
+        dict['id'] = dict['id'] + 1
+        idnum = dict['id']
+        i = str(idnum)
+        dict[str(id(object))] = i
+        dict[i] = object
         self.write(DEFINE_REFERENCE + self.encode_ber(idnum))
         self.write(DICTIONARY)
         items = object.items()
@@ -144,15 +156,19 @@ class LDOBinaryMarshaler(Marshaler):
             self._marshal(value, dict)
 
     def m_instance(self, object, dict):
-        dict['id'] = dict['id'] + 1 ; idnum = dict['id'] ; i = str(idnum)
-        dict[ str(id(object)) ] = i ; dict[ i ] = object
+        dict['id'] = dict['id'] + 1
+        idnum = dict['id']
+        i = str(idnum)
+        dict[str(id(object))] = i
+        dict[i] = object
         self.write(DEFINE_REFERENCE + self.encode_ber(idnum))
         cls = object.__class__
         module = whichmodule(cls)
         name = cls.__name__
         self.write(ATTRIBUTES + DICTIONARY + self.encode_ber(1))
         # FIXME support LDO-Types
-        self._marshal(TYPE_ATTR, dict) ; self._marshal(module + '\n' + name, dict )
+        self._marshal(TYPE_ATTR, dict)
+        self._marshal(module + '\n' + name, dict)
         self.write(DICTIONARY)
         try:
             getstate = object.__getstate__
@@ -168,13 +184,14 @@ class LDOBinaryMarshaler(Marshaler):
             self._marshal(key, dict)
             self._marshal(value, dict)
 
+
 class LDOBinaryUnmarshaler(Unmarshaler):
 
     def __init__(self, stream):
         self.read_stream_header = 0
         self.read = stream.read
         self.memo = {}
-               
+
     def um_init(self):
         if not self.read_stream_header:
             self.read_stream_header = 1
@@ -202,8 +219,7 @@ class LDOBinaryUnmarshaler(Unmarshaler):
             # FIXME support LDO-Types
             items = string.split(attributes[TYPE_ATTR], "\n")
             if len(items) != 2:
-                raise ValueError, \
-                  "invalid Python class in attributes"
+                raise ValueError("invalid Python class in attributes")
             # FIXME check existence of class too
 
             module, name = items[0], items[1]
@@ -217,14 +233,13 @@ class LDOBinaryUnmarshaler(Unmarshaler):
             #print "Dispatching key: %s" % hex(ord(key))
             item = self.um_dispatch[key](self)
         except KeyError:
-            raise ValueError, \
-                "unknown field tag: " + hex(ord(key))
+            raise ValueError("unknown field tag: " + hex(ord(key)))
         if id:
             self.memo[id] = item
         return item
 
     def decode_ber(self):
-        d = 0
+        d = long(0)
         a_byte = self.read(1)
         if a_byte == '':
             raise EOFError
@@ -343,17 +358,17 @@ class LDOBinaryUnmarshaler(Unmarshaler):
         try:
             exec 'from %s import %s' % (module, name) in env
         except ImportError:
-            raise SystemError, \
-                "Failed to import class %s from module %s" % \
-                (name, module)
+            raise SystemError("Failed to import class %s from module %s" % \
+                (name, module))
         klass = env[name]
         if type(klass) is BuiltinFunctionType:
-            raise SystemError, \
-               "Imported object %s from module %s is not a class" % \
-                (name, module)
+            raise SystemError(\
+                    "Imported object %s from module %s is not a class" % \
+                    (name, module))
         return klass
 
 classmap = {}
+
 
 def whichmodule(cls):
     """Figure out the module in which a class occurs.
@@ -363,7 +378,7 @@ def whichmodule(cls):
     Return a module name.
     If the class cannot be found, return __main__.
     """
-    if classmap.has_key(cls):
+    if cls in classmap.keys():
         return classmap[cls]
     import sys
     clsname = cls.__name__
@@ -381,16 +396,20 @@ def whichmodule(cls):
 
 from StringIO import StringIO
 
+
 def dump(object, file):
     LDOBinaryMarshaler(file).dump(object)
+
 
 def dumps(object):
     file = StringIO()
     LDOBinaryMarshaler(file).dump(object)
     return file.getvalue()
 
+
 def load(file):
     return LDOBinaryUnmarshaler(file).load()
+
 
 def loads(str):
     file = StringIO(str)

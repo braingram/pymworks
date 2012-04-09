@@ -98,7 +98,7 @@ class DataFile:
             return lambda e: True
         elif isinstance(key, str):
             return self.key_to_test(self.to_code(key))
-        elif isinstance(key, (int, numpy.integer)):
+        elif isinstance(key, (int, numpy.integer, numpy.long)):
             return lambda e: e.code == key
         elif isinstance(key, (tuple, list, numpy.ndarray)):
             codes = map(lambda k: self.to_code(k) if isinstance(k, str) \
@@ -332,11 +332,13 @@ class IndexedDataFile(DataFile):
     def get_key_filtered_events(self, key):
         if isinstance(key, str):
             codes = [self.to_code(key)]
-        elif isinstance(key, (int, numpy.integer)):
+        elif isinstance(key, (int, numpy.integer, numpy.long)):
             codes = [key]
         elif isinstance(key, (tuple, list, numpy.ndarray)):
             codes = map(lambda k: self.to_code(k) if isinstance(k, str) \
                     else k, key)
+        else:
+            raise ValueError('Invalid key: %s' % key)
         return reduce(lambda x, y: x + y, [\
                 [self.get_event_at(p) for p in self._index[code]] \
                 for code in codes])
