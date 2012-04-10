@@ -10,18 +10,7 @@ import LDOBinary
 import numpy
 
 
-class Event(list):
-    @property
-    def code(self):
-        return self[0]
-
-    @property
-    def time(self):
-        return self[1]
-
-    @property
-    def value(self):
-        return self[2]
+Event = collections.namedtuple('Event', 'code time value')
 
 
 class DataFile:
@@ -57,7 +46,7 @@ class DataFile:
     def next_event(self):
         """ Get the next event in the file"""
         try:
-            return Event(self.ldo.load())
+            return Event(*self.ldo.load())
         except EOFError:
             return None
 
