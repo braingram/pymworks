@@ -49,6 +49,10 @@ class DataFile:
             return Event(*self.ldo.load())
         except EOFError:
             return None
+        except TypeError:
+            logging.warning("Event before %i was missing required code, "
+                "time, and/or value" % self.file.tell())
+            return None
 
     def to_code(self, name):
         """ Lookup code for an event name """
@@ -294,6 +298,9 @@ class IndexedDataFile(DataFile):
             event = self.next_event()
 
         self._index = dict(self._index)
+        for code in self.codec.keys():
+            if code not in self._index:
+                self._index[code] = []
 
         # get codec and time ranges
         self._index.update({'_codec': self.codec, \
@@ -310,7 +317,7 @@ class IndexedDataFile(DataFile):
         self._mintime = self._index['_mintime']
         self._maxtime = self._index['_maxtime']
 
-    def get_event_at(self, position):
+    def event_at(self, position):
         """
         Return an event at a file position
         """
@@ -329,7 +336,7 @@ class IndexedDataFile(DataFile):
         else:
             raise ValueError('Invalid key: %s' % key)
         return reduce(lambda x, y: x + y, [\
-                [self.get_event_at(p) for p in self._index[code]] \
+                [self.event_at(p) for p in self._index[code]] \
                 for code in codes])
 
     def get_key_and_time_filtered_events(self, key, time_range):
