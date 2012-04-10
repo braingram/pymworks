@@ -123,7 +123,7 @@ class LDOBinaryMarshaler(Marshaler):
         self.write(LIST)
         n = len(object)
         self.write(self.encode_ber(n))
-        for k in range(n):
+        for k in xrange(n):
             self._marshal(object[k], dict)
 
     def m_tuple(self, object, dict):
@@ -136,7 +136,7 @@ class LDOBinaryMarshaler(Marshaler):
         self.write(LIST)
         n = len(object)
         self.write(self.encode_ber(n))
-        for k in range(n):
+        for k in xrange(n):
             self._marshal(object[k], dict)
 
     def m_dictionary(self, object, dict):
@@ -150,7 +150,7 @@ class LDOBinaryMarshaler(Marshaler):
         items = object.items()
         n = len(items)
         self.write(self.encode_ber(n))
-        for k in range(n):
+        for k in xrange(n):
             key, value = items[k]
             self._marshal(key, dict)
             self._marshal(value, dict)
@@ -179,7 +179,7 @@ class LDOBinaryMarshaler(Marshaler):
         items = stuff.items()
         n = len(items)
         self.write(self.encode_ber(n))
-        for k in range(n):
+        for k in xrange(n):
             key, value = items[k]
             self._marshal(key, dict)
             self._marshal(value, dict)
@@ -331,7 +331,7 @@ class LDOBinaryUnmarshaler(Unmarshaler):
     def um_list(self):
         n = self.decode_ber()
         new_list = []
-        for ii in range(n):
+        for ii in xrange(n):
             item = self._unmarshal()
             new_list.append(item)
         return new_list
@@ -340,7 +340,7 @@ class LDOBinaryUnmarshaler(Unmarshaler):
     def um_dict(self):
         n = self.decode_ber()
         d = {}
-        for ii in range(n):
+        for ii in xrange(n):
             item = self._unmarshal()
             key = item
             item = self._unmarshal()

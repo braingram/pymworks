@@ -3,7 +3,8 @@
 import collections
 import logging
 import os
-import pickle
+#import pickle
+import cPickle as pickle
 
 import LDOBinary
 
