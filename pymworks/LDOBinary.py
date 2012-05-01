@@ -18,32 +18,32 @@ import string
 import struct
 import numpy as np
 
-MAGIC            = "\x89" + "CBF"
-MAJOR            = 0
-MINOR            = 0
+MAGIC = "\x89" + "CBF"
+MAJOR = 0
+MINOR = 0
 
-VERSION          = "\x01"
+VERSION = "\x01"
 
-INTEGER_N        = "\x02"
-INTEGER_P        = "\x03"
-FLOAT_NN         = "\x04"
-FLOAT_NP         = "\x05"
-FLOAT_PN         = "\x06"
-FLOAT_PP         = "\x07"
-FLOAT_INF        = "\x08"
-FLOAT_NAN        = "\x09"
-OPAQUE           = "\x0A"
-NULL             = "\x0B"
-LIST             = "\x0C"
-DICTIONARY       = "\x0D"
+INTEGER_N = "\x02"
+INTEGER_P = "\x03"
+FLOAT_NN = "\x04"
+FLOAT_NP = "\x05"
+FLOAT_PN = "\x06"
+FLOAT_PP = "\x07"
+FLOAT_INF = "\x08"
+FLOAT_NAN = "\x09"
+OPAQUE = "\x0A"
+NULL = "\x0B"
+LIST = "\x0C"
+DICTIONARY = "\x0D"
 
 DEFINE_REFERENCE = "\x0E"
-REFERENCE        = "\x0F"
+REFERENCE = "\x0F"
 
-ATTRIBUTES       = "\x10"
-FLOAT_OPAQUE     = "\x11"
+ATTRIBUTES = "\x10"
+FLOAT_OPAQUE = "\x11"
 
-TYPE_ATTR        = 'type'
+TYPE_ATTR = 'type'
 
 
 class LDOBinaryMarshaler(Marshaler):
@@ -223,7 +223,7 @@ class LDOBinaryUnmarshaler(Unmarshaler):
             # FIXME check existence of class too
 
             module, name = items[0], items[1]
-            klass = self.find_class(module, name)
+            #klass = self.find_class(module, name)
 
             key = self.read(1)
             if key == '':

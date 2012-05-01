@@ -3,7 +3,7 @@ ScarabMarshal is derived from xml.marshal and pickle
 
 """
 
-from StringIO import StringIO
+#from StringIO import StringIO
 #how about this instead:
 #try:
 #    import cStringIO
@@ -14,16 +14,17 @@ from StringIO import StringIO
 PicklingError = "pickle.PicklingError"
 UnpicklingError = "pickle.UnpicklingError"
 
+
 class Marshaler:
 
     def dump(self, value):
         "Write the value"
-        dict = { 'id':0 }
+        dict = {'id': 0}
         self.m_init(dict)
         self._marshal(value, dict)
         self.m_finish(dict)
 
-    # Entry point for marshaling.  This function gets the name of the 
+    # Entry point for marshaling.  This function gets the name of the
     # type of the object being marshaled, and calls the
     # m_<typename> method.
     #
@@ -35,14 +36,16 @@ class Marshaler:
     # references to already-marshaled objects
 
     def _marshal(self, value, dict):
-        t = type(value)
-        i = str( id(value) )
-        if dict.has_key( i ):
+        #t = type(value)
+        i = str(id(value))
+        if i in dict:
             self.m_reference(value, dict)
         else:
-            if type(value) == type(1L): meth = 'm_long'
-            else: meth = "m_" + type(value).__name__
-            getattr(self,meth)(value, dict) 
+            if type(value) == type(1L):
+                meth = 'm_long'
+            else:
+                meth = "m_" + type(value).__name__
+            getattr(self, meth)(value, dict)
 
     def m_init(self, dict):
         "Perform any initialization before writing first object"
@@ -55,52 +58,53 @@ class Marshaler:
     # languages, use the set of types defined by your language.
 
     def m_reference(self, value, dict):
-        raise PicklingError, \
-              self.__class__.__name__ + " can't pickle references"
+        raise PicklingError( \
+              self.__class__.__name__ + " can't pickle references")
 
     def m_string(self, value, dict):
-        raise PicklingError, \
-              self.__class__.__name__ + " can't pickle strings"
+        raise PicklingError( \
+              self.__class__.__name__ + " can't pickle strings")
 
     def m_int(self, value, dict):
-        raise PicklingError, \
-              self.__class__.__name__ + " can't pickle ints"
+        raise PicklingError( \
+              self.__class__.__name__ + " can't pickle ints")
 
     def m_float(self, value, dict):
-        raise PicklingError, \
-              self.__class__.__name__ + " can't pickle floats"
+        raise PicklingError( \
+              self.__class__.__name__ + " can't pickle floats")
 
     def m_long(self, value, dict):
-        raise PicklingError, \
-              self.__class__.__name__ + " can't pickle longs"
+        raise PicklingError( \
+              self.__class__.__name__ + " can't pickle longs")
 
     def m_tuple(self, value, dict):
-        raise PicklingError, \
-              self.__class__.__name__ + " can't pickle tuples"
+        raise PicklingError( \
+              self.__class__.__name__ + " can't pickle tuples")
 
     def m_list(self, value, dict):
-        raise PicklingError, \
-              self.__class__.__name__ + " can't pickle lists"
+        raise PicklingError( \
+              self.__class__.__name__ + " can't pickle lists")
 
     def m_dictionary(self, value, dict):
-        raise PicklingError, \
-              self.__class__.__name__ + " can't pickle dictionaries"
+        raise PicklingError( \
+              self.__class__.__name__ + " can't pickle dictionaries")
 
     def m_None(self, value, dict):
-        raise PicklingError, \
-              self.__class__.__name__ + " can't pickle nones"
+        raise PicklingError( \
+              self.__class__.__name__ + " can't pickle nones")
 
     def m_complex(self, value, dict):
-        raise PicklingError, \
-              self.__class__.__name__ + " can't pickle complexes"
+        raise PicklingError( \
+              self.__class__.__name__ + " can't pickle complexes")
 
     def m_code(self, value, dict):
-        raise PicklingError, \
-              self.__class__.__name__ + " can't pickle code"
+        raise PicklingError( \
+              self.__class__.__name__ + " can't pickle code")
 
     def m_instance(self, value, dict):
-        raise PicklingError, \
-              self.__class__.__name__ + " can't pickle instances"
+        raise PicklingError( \
+              self.__class__.__name__ + " can't pickle instances")
+
 
 class Unmarshaler:
 
@@ -117,8 +121,8 @@ class Unmarshaler:
     def um_finish(self):
         "Perform any cleanup after reading last object"
 
-def test(load, loads, dump, dumps, test_values,
-         do_assert = 1):
+
+def test(load, loads, dump, dumps, test_values, do_assert=1):
     # Try all the above bits of data
     import StringIO
 
@@ -135,29 +139,36 @@ def test(load, loads, dump, dumps, test_values,
 #        if do_assert:
 #            assert item==output and item==output2 and output==output2
 
+
 # Classes used in the test suite
-class _A: 
-    def __repr__(self): return '<A instance>'
-class _B: 
-    def __repr__(self): return '<B instance>'
+class _A:
+    def __repr__(self):
+        return '<A instance>'
+
+
+class _B:
+    def __repr__(self):
+        return '<B instance>'
+
 
 def runtests(load, loads, dump, dumps):
     print "Testing marshaling..."
 
-    L = [None, 1, pow(2,123L), 19.72, 1+5j, 
+    L = [None, 1, pow(2, 123L), 19.72, 1 + 5j,
          "here is a string & a <fake tag>",
-         (1,2,3), 
+         (1, 2, 3),
          ['alpha', 'beta', 'gamma'],
          {'key':'value', 1:2}
          ]
     test(load, loads, dump, dumps, L)
 
-    instance = _A() ; instance.subobject = _B() 
-    instance.subobject.list=[None, 1, pow(2,123L), 19.72, 1+5j, 
+    instance = _A()
+    instance.subobject = _B()
+    instance.subobject.list = [None, 1, pow(2, 123L), 19.72, 1 + 5j,
                              "here is a string & a <fake tag>"]
     # FIXME don't test recursion yet
     #instance.self = instance
-    L = [ instance ]
+    L = [instance]
 
     test(load, loads, dump, dumps, L, do_assert=0)
 
