@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import socket
-import time
 
 import LDOBinary
 from datafile import Event
@@ -14,8 +13,6 @@ class TCPReader:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.ldo = None
         self.connect()
-        #self.socket.connect((self.host, self.port))
-        #self.socket.listen(1)
 
     def connect(self):
         self.socket.connect((self.host, self.port))
@@ -59,7 +56,7 @@ class Client:
         self.reader = TCPReader(self.host, self.port)
         self.writer = TCPWriter(self.host, self.port)
 
-        # wrie client connected to server response
+        # write client connected to server response
         #self.write_event([1, int(time.time() * 1E6), \
         #        {'payload': {}, 'payload_type': 4009, \
         #        'event_type': 1002}])
