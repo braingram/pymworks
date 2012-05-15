@@ -206,7 +206,7 @@ if debug:
 
 setuptools.setup(
     name=package_name,
-    version='1.0',
+    version='1.1',
     packages=packages,
     scripts=scripts,
 
