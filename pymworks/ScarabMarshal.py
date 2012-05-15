@@ -19,10 +19,9 @@ class Marshaler:
 
     def dump(self, value):
         "Write the value"
-        dict = {'id': 0}
-        self.m_init(dict)
-        self._marshal(value, dict)
-        self.m_finish(dict)
+        self.m_init()
+        self._marshal(value)
+        self.m_finish()
 
     # Entry point for marshaling.  This function gets the name of the
     # type of the object being marshaled, and calls the
@@ -34,74 +33,71 @@ class Marshaler:
     #
     # XXX there should be some way to disable the automatic generation of
     # references to already-marshaled objects
+    #
+    # removing this as mworks does not use references
 
-    def _marshal(self, value, dict):
-        #t = type(value)
-        i = str(id(value))
-        if i in dict:
-            self.m_reference(value, dict)
+    def _marshal(self, value):
+        if type(value) == type(1L):
+            meth = 'm_long'
         else:
-            if type(value) == type(1L):
-                meth = 'm_long'
-            else:
-                meth = "m_" + type(value).__name__
-            getattr(self, meth)(value, dict)
+            meth = "m_" + type(value).__name__
+        getattr(self, meth)(value)
 
-    def m_init(self, dict):
+    def m_init(self):
         "Perform any initialization before writing first object"
 
-    def m_finish(self, dict):
+    def m_finish(self):
         "Perform any cleanup after writing last object"
 
     # The following types are specifically Python types, not any types
     # defined by lower-level marshaling modules.  When porting to other
     # languages, use the set of types defined by your language.
 
-    def m_reference(self, value, dict):
+    def m_reference(self, value):
         raise PicklingError( \
               self.__class__.__name__ + " can't pickle references")
 
-    def m_string(self, value, dict):
+    def m_string(self, value):
         raise PicklingError( \
               self.__class__.__name__ + " can't pickle strings")
 
-    def m_int(self, value, dict):
+    def m_int(self, value):
         raise PicklingError( \
               self.__class__.__name__ + " can't pickle ints")
 
-    def m_float(self, value, dict):
+    def m_float(self, value):
         raise PicklingError( \
               self.__class__.__name__ + " can't pickle floats")
 
-    def m_long(self, value, dict):
+    def m_long(self, value):
         raise PicklingError( \
               self.__class__.__name__ + " can't pickle longs")
 
-    def m_tuple(self, value, dict):
+    def m_tuple(self, value):
         raise PicklingError( \
               self.__class__.__name__ + " can't pickle tuples")
 
-    def m_list(self, value, dict):
+    def m_list(self, value):
         raise PicklingError( \
               self.__class__.__name__ + " can't pickle lists")
 
-    def m_dictionary(self, value, dict):
+    def m_dictionary(self, value):
         raise PicklingError( \
               self.__class__.__name__ + " can't pickle dictionaries")
 
-    def m_None(self, value, dict):
+    def m_None(self, value):
         raise PicklingError( \
               self.__class__.__name__ + " can't pickle nones")
 
-    def m_complex(self, value, dict):
+    def m_complex(self, value):
         raise PicklingError( \
               self.__class__.__name__ + " can't pickle complexes")
 
-    def m_code(self, value, dict):
+    def m_code(self, value):
         raise PicklingError( \
               self.__class__.__name__ + " can't pickle code")
 
-    def m_instance(self, value, dict):
+    def m_instance(self, value):
         raise PicklingError( \
               self.__class__.__name__ + " can't pickle instances")
 

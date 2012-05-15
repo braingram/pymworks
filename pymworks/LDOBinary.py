@@ -53,7 +53,7 @@ class LDOBinaryMarshaler(Marshaler):
         self.write = stream.write
         self.flush = stream.flush
 
-    def m_init(self, dict):
+    def m_init(self):
         if not self.written_stream_header:
             self.written_stream_header = 1
             self.write(MAGIC)
@@ -85,90 +85,78 @@ class LDOBinaryMarshaler(Marshaler):
     def encode_float_opaque(self, str):
         self.write(FLOAT_OPAQUE + self.encode_ber(len(str)) + str)
 
-    def m_reference(self, object, dict):
+    def m_reference(self, object):
+        raise NotImplementedError("References are not implemented")
         self.write(REFERENCE + \
                 self.encode_ber(string.atoi(dict[str(id(object))])))
 
-    def m_None(self, object, dict):
+    def m_NoneType(self, object):
         self.write(NULL)
 
-    def m_int(self, object, dict):
+    def m_int(self, object):
         if object >= 0:
             self.write(INTEGER_P + self.encode_ber(object))
         else:
             self.write(INTEGER_N + self.encode_ber(-object))
 
-    def m_long(self, object, dict):
+    def m_long(self, object):
         if object >= 0:
             self.write(INTEGER_P + self.encode_ber(object))
         else:
             self.write(INTEGER_N + self.encode_ber(-object))
 
-    def m_float(self, object, dict):
+    def m_float(self, object):
+        """
+        # TODO: figure out how this differs from a normal opaque
+        #raise NotImplemented, "I don't know what an opaque is"
+        l = self.decode_ber()
+        # how many bytes make up this float
+        #print "Float had %i bytes" % l
+        char_str = self.read(l)
+        if l == 4:
+            return struct.unpack('f', char_str)[0]
+        elif l == 8:
+            return struct.unpack('d', char_str)[0]
+        else:
+            raise ValueError("Cannot unpack float_opaque with len %s" % l)
+        """
+        self.encode_float_opaque(struct.pack('d', object))
+        #self.encode_opaque(repr(object))
+
+    def m_complex(self, object):
         self.encode_opaque(repr(object))
 
-    def m_complex(self, object, dict):
-        self.encode_opaque(repr(object))
-
-    def m_string(self, object, dict):
+    def m_str(self, object):
         self.encode_opaque(object)
 
-    def m_list(self, object, dict):
-        dict['id'] = dict['id'] + 1
-        idnum = dict['id']
-        i = str(idnum)
-        dict[str(id(object))] = i
-        dict[i] = object
-        self.write(DEFINE_REFERENCE + self.encode_ber(idnum))
+    def m_list(self, object):
         self.write(LIST)
         n = len(object)
         self.write(self.encode_ber(n))
         for k in xrange(n):
-            self._marshal(object[k], dict)
+            self._marshal(object[k])
 
-    def m_tuple(self, object, dict):
-        dict['id'] = dict['id'] + 1
-        idnum = dict['id']
-        i = str(idnum)
-        dict[str(id(object))] = i
-        dict[i] = object
-        self.write(DEFINE_REFERENCE + self.encode_ber(idnum))
-        self.write(LIST)
-        n = len(object)
-        self.write(self.encode_ber(n))
-        for k in xrange(n):
-            self._marshal(object[k], dict)
+    def m_tuple(self, object):
+        self.m_list(object)
 
-    def m_dictionary(self, object, dict):
-        dict['id'] = dict['id'] + 1
-        idnum = dict['id']
-        i = str(idnum)
-        dict[str(id(object))] = i
-        dict[i] = object
-        self.write(DEFINE_REFERENCE + self.encode_ber(idnum))
+    def m_dict(self, object):
         self.write(DICTIONARY)
         items = object.items()
         n = len(items)
         self.write(self.encode_ber(n))
         for k in xrange(n):
             key, value = items[k]
-            self._marshal(key, dict)
-            self._marshal(value, dict)
+            self._marshal(key)
+            self._marshal(value)
 
-    def m_instance(self, object, dict):
-        dict['id'] = dict['id'] + 1
-        idnum = dict['id']
-        i = str(idnum)
-        dict[str(id(object))] = i
-        dict[i] = object
-        self.write(DEFINE_REFERENCE + self.encode_ber(idnum))
+    def m_instance(self, object):
         cls = object.__class__
         module = whichmodule(cls)
         name = cls.__name__
         self.write(ATTRIBUTES + DICTIONARY + self.encode_ber(1))
         # FIXME support LDO-Types
-        self._marshal(TYPE_ATTR, dict)
-        self._marshal(module + '\n' + name, dict)
+        self._marshal(TYPE_ATTR)
+        self._marshal(module + '\n' + name)
         self.write(DICTIONARY)
         try:
             getstate = object.__getstate__
@@ -181,8 +169,8 @@ class LDOBinaryMarshaler(Marshaler):
         self.write(self.encode_ber(n))
         for k in xrange(n):
             key, value = items[k]
-            self._marshal(key, dict)
-            self._marshal(value, dict)
+            self._marshal(key)
+            self._marshal(value)
 
 
 class LDOBinaryUnmarshaler(Unmarshaler):
@@ -209,6 +197,7 @@ class LDOBinaryUnmarshaler(Unmarshaler):
             raise EOFError
 
         if key == DEFINE_REFERENCE:
+            raise NotImplementedError("References are not implemented")
             id = str(self.decode_ber())
             key = self.read(1)
             if key == '':
@@ -230,7 +219,7 @@ class LDOBinaryUnmarshaler(Unmarshaler):
                 raise EOFError
 
         try:
-            #print "Dispatching key: %s" % hex(ord(key))
+            # print "Dispatching key: %s" % hex(ord(key))
             item = self.um_dispatch[key](self)
         except KeyError:
             raise ValueError("unknown field tag: " + hex(ord(key)))

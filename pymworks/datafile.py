@@ -345,6 +345,20 @@ class IndexedDataFile(DataFile):
         return [e for e in self.get_key_filtered_events(key) if tt(e)]
 
 
+class DataFileWriter(object):
+    def __init__(self, filename):
+        self.file = open(filename, 'w')
+        self.ldo = LDOBinary.LDOBinaryMarshaler(self.file)
+        self.ldo.m_init()
+
+    def write_event(self, event):
+        self.ldo._marshal(list(event))
+
+    def close(self):
+        del self.ldo
+        self.file.close()
+
+
 def unpack_events(events):
     """
     Unpack events into three tuples (codes, times, values)
