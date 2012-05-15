@@ -6,29 +6,6 @@ import time
 import LDOBinary
 from datafile import Event
 
-import numpy
-
-
-class StreamReader:
-    def __init__(self, stream):
-        self.stream = stream
-        self.ldo = LDOBinary.LDOBinaryUnmarshaler(self.stream)
-        self.restart()
-        self._codec = None
-        self._maxtime = None
-        self._mintime = None
-
-    def restart(self):
-        self.ldo.read_stream_header = 0
-        self.ldo.um_init()
-
-    def close(self):
-        del self.ldo
-        del self.stream
-
-    def next_event(self):
-        return Event(*self.ldo.load())
-
 
 class TCPReader:
     def __init__(self, host, port):
@@ -43,6 +20,7 @@ class TCPReader:
     def connect(self):
         self.socket.connect((self.host, self.port))
         self.ldo = LDOBinary.LDOBinaryUnmarshaler(self.socket.makefile('rb'))
+        #self.ldo.um_init()
 
     def read(self):
         return Event(*self.ldo.load())
@@ -59,9 +37,11 @@ class TCPWriter:
     def connect(self):
         self.socket.connect((self.host, self.port))
         self.ldo = LDOBinary.LDOBinaryMarshaler(self.socket.makefile('wb'))
+        #self.ldo.m_init()
 
     def write_event(self, event):
         self.ldo._marshal(list(event))
+        self.ldo.flush()
 
 
 class Client:
