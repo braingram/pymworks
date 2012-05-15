@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import socket
+import time
 
 import LDOBinary
 from datafile import Event
@@ -40,34 +41,6 @@ class TCPReader:
         #self.socket.listen(1)
 
     def connect(self):
-        """
-            shared_ptr<NetworkReturn> rc;
-            if(prepareForConnecting() < 0) {
-                rc = shared_ptr<NetworkReturn>(new NetworkReturn());
-                rc->setMWorksCode(NR_FAILED);
-                rc->setInformation("Host or Reader or Writer is NULL");
-                return rc;
-            }
-            rc = reader->connect();
-            if(!rc->wasSuccessful()) {
-                mnetwork("mScarabClient::connect() failed on read connection");
-                return rc;
-            }
-            shared_ptr<NetworkReturn> writeRc;
-            writeRc = writer->connect();
-            rc->appendInformation(writeRc->getInformation());
-            if(!writeRc->wasSuccessful()) {
-                    mnetwork("mScarabClient::connect() failed
-                    on write connection");
-                    mnetwork("Closing read connection");
-                    reader->disconnect();
-                    return rc;
-            }
-            mnetwork("Incoming network session connected");
-            outgoing_event_buffer->putEvent(
-                SystemEventFactory::clientConnectedToServerResponse());
-            return rc;
-        """
         self.socket.connect((self.host, self.port))
         self.ldo = LDOBinary.LDOBinaryUnmarshaler(self.socket.makefile('rb'))
 
@@ -89,3 +62,33 @@ class TCPWriter:
 
     def write_event(self, event):
         self.ldo._marshal(list(event))
+
+
+class Client:
+    """
+    Fake mworks client
+    """
+    def __init__(self, host='127.0.0.1', port=19989):
+        """
+        Look in mw_core/core/events/eventconstants.h for more info on
+                system events
+        """
+        self.host = host
+        self.port = port
+        # must connect in this order
+        self.reader = TCPReader(self.host, self.port)
+        self.writer = TCPWriter(self.host, self.port)
+
+        # wrie client connected to server response
+        #self.write_event([1, int(time.time() * 1E6), \
+        #        {'payload': {}, 'payload_type': 4009, \
+        #        'event_type': 1002}])
+
+    def read(self):
+        return self.reader.read()
+
+    def write_event(self, event):
+        """
+        at the moment this doesn't seem to work
+        """
+        self.writer.write_event(list(event))
