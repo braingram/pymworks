@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
+import select
 import socket
 
 import LDOBinary
 from datafile import Event
 
 
-class TCPReader:
+class TCPReader(object):
     def __init__(self, host, port):
         self.host = host
         self.port = port
@@ -22,8 +23,15 @@ class TCPReader:
     def read(self):
         return Event(*self.ldo.load())
 
+    def try_read(self, timeout=1.0):
+        r, _, _ = select.select([self.socket], [], [], timeout)
+        if len(r):
+            return self.read()
+        else:
+            return None
 
-class TCPWriter:
+
+class TCPWriter(object):
     def __init__(self, host, port):
         self.host = host
         self.port = port
@@ -41,7 +49,7 @@ class TCPWriter:
         self.ldo.flush()
 
 
-class Client:
+class Client(object):
     """
     Fake mworks client
     """
@@ -65,7 +73,59 @@ class Client:
         return self.reader.read()
 
     def write_event(self, event):
-        """
-        at the moment this doesn't seem to work
-        """
         self.writer.write_event(list(event))
+
+    #def read_initial_events(self):
+    #    event = self.reader.try_read()
+    #    while event is not None:
+    #        event = self.reader.try_read()
+
+
+class CodecClient(Client):
+    def __init__(self, **kwargs):
+        Client.__init__(self, **kwargs)
+        self.codec = {}
+        self.update(100)
+    
+    def update(self, max_n=100, timeout=1.0):
+        event = self.reader.try_read(timeout)
+        n = 0
+        while (event is not None) and (n < max_n):
+            n += 1
+            self.process_event(event)
+            event = self.reader.try_read(timeout)
+
+    def process_event(self, event):
+        if event.code == 0:
+            self.process_codec_event(self, event)
+
+    def process_codec_event(self, event):
+        self.codec = dict([(k, v['tagname']) for k, v in \
+                event.value.iteritems()] + \
+                [(0, '#codec'), (1, '#systemEvent'), \
+                (2, '#components'), (3, '#termination')])
+
+    def get_reverse_codec(self):
+        return dict([(v, k) for k, v in self.codec.iteritems()])
+
+    rcodec = property(get_reverse_codec)
+
+
+class CallbackCodecClient(CodecClient):
+    def __init__(self, callbacks=None, **kwargs):
+        if callbacks is None:
+            self.callbacks = {}
+        self.callbacks[0] = self.process_codec_event
+        CodecClient.__init__(self, **kwargs)
+
+    def process_event(self, event):
+        if event.code in self.callbacks:
+            self.callbacks[event.code](event)
+
+    def register_callback(self, key, func):
+        if isinstance(key, str):
+            if key not in self.codec.values():
+                raise ValueError("String type key[%s] not in codec[%s]" \
+                        % (key, self.codec))
+            key = self.rcodec[key]
+        self.callbacks[key] = func
