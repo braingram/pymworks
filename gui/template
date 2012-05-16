@@ -1,3 +1,3 @@
-trigger: Button # boolean
-foo: SpinBox # number
-lick: Scale # number
+mybool: Checkbutton # boolean
+myint: Scale # number
+myfloat: Scale # number

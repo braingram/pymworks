@@ -85,19 +85,17 @@ class CodecClient(Client):
     def __init__(self, **kwargs):
         Client.__init__(self, **kwargs)
         self.codec = {}
-        self.update(100)
-    
-    def update(self, max_n=100, timeout=1.0):
+        self.find_codec()
+   
+    def find_codec(self, max_n=100, timeout=1.0):
         event = self.reader.try_read(timeout)
         n = 0
         while (event is not None) and (n < max_n):
             n += 1
-            self.process_event(event)
+            if event.code == 0:
+                self.process_codec_event(event)
+                break
             event = self.reader.try_read(timeout)
-
-    def process_event(self, event):
-        if event.code == 0:
-            self.process_codec_event(self, event)
 
     def process_codec_event(self, event):
         self.codec = dict([(k, v['tagname']) for k, v in \
@@ -117,6 +115,14 @@ class CallbackCodecClient(CodecClient):
             self.callbacks = {}
         self.callbacks[0] = self.process_codec_event
         CodecClient.__init__(self, **kwargs)
+
+    def update(self, max_n=100, timeout=1.0):
+        event = self.reader.try_read(timeout)
+        n = 0
+        while (event is not None) and (n < max_n):
+            n += 1
+            self.process_event(event)
+            event = self.reader.try_read(timeout)
 
     def process_event(self, event):
         if event.code in self.callbacks:
