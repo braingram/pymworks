@@ -1,0 +1,3 @@
+trigger: Button # boolean
+foo: SpinBox # number
+lick: Scale # number
