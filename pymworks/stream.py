@@ -31,6 +31,18 @@ class TCPReader(object):
             return None
 
 
+class FakeReader(object):
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+
+    def read(self):
+        return None
+
+    def try_read(self):
+        return None
+
+
 class TCPWriter(object):
     def __init__(self, host, port):
         self.host = host
@@ -47,6 +59,15 @@ class TCPWriter(object):
     def write_event(self, event):
         self.ldo._marshal(list(event))
         self.ldo.flush()
+
+
+class FakeWriter(object):
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+
+    def write_event(self, event):
+        pass
 
 
 class Client(object):
@@ -86,7 +107,7 @@ class CodecClient(Client):
         Client.__init__(self, **kwargs)
         self.codec = {}
         self.find_codec()
-   
+
     def find_codec(self, max_n=100, timeout=1.0):
         event = self.reader.try_read(timeout)
         n = 0
@@ -135,3 +156,26 @@ class CallbackCodecClient(CodecClient):
                         % (key, self.codec))
             key = self.rcodec[key]
         self.callbacks[key] = func
+
+
+class FakeClient(object):
+    def __init__(self, **kwargs):
+        self.codec = {}
+        self.rcodec = {}
+        self.callbacks = {}
+        self.host = kwargs.get('host', 'fake')
+        self.port = kwargs.get('port', 19989)
+        self.reader = FakeReader(self.host, self.port)
+        self.writer = FakeWriter(self.host, self.port)
+
+    def read(self):
+        return None
+
+    def write_event(self, event):
+        pass
+
+    def update(self, max_n=100, timeout=1.0):
+        pass
+
+    def register_callback(self, key, func):
+        pass

@@ -1,3 +1,33 @@
-mybool: Checkbutton # boolean
-myint: Scale # number
-myfloat: Scale # number
+[
+    {
+        "name": "FlagAlwaysReward",
+        "type": "bool"
+    },
+    {
+        "name": "FlagPunishLicking",
+        "type": "bool"
+    },
+    {
+        "name": "TargetProb",
+        "type": "float",
+        "widget": "Spinbox",
+        "from_": 0.0,
+        "to": 1.0,
+        "increment": 0.05
+    },
+    {
+        "name": "LickOutput1",
+        "type": "float",
+        "widget": "Button"
+    },
+    {
+        "name": "LickOutput1",
+        "type": "float",
+        "from_": 0.0,
+        "to": 0.5,
+        "increment": 0.01
+    },
+    {
+        "name": "HeadInput"
+    }
+]
