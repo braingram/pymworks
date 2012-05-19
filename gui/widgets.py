@@ -31,6 +31,20 @@ class TouchButton(tk.Button):
         self.setvar(self['textvariable'].string, self['text'])
 
 
+class SafeSpinbox(tk.Spinbox):
+    """
+    Only send the value when Enter is pressed
+    """
+    def __init__(self, *args, **kwargs):
+        if 'textvariable' in kwargs:
+            self.var = kwargs.pop('textvariable')
+        tk.Spinbox.__init__(self, *args, **kwargs)
+        self.bind('<Return>', self.send)
+
+    def send(self, event):
+        self.var.set(self.get())
+
+
 vtypes = {\
         'bool': tk.IntVar,
         'int': tk.IntVar,
@@ -221,6 +235,7 @@ def make_widget(parent, variable, wdef):
         'Label': tk.Label,
         'Scale': tk.Scale,
         'Spinbox': tk.Spinbox,
+        'SafeSpinbox': SafeSpinbox
     }.get(widget, None)
     if func is None:
         raise ValueError("Unknown widget: %s" % widget)
