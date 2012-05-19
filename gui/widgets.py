@@ -94,7 +94,15 @@ widget_defaults = {\
             'from_': 0,
             'to': 100,
             'increment': 1,
+            'width': 4,
             },
+        'SafeSpinbox': {
+            'variable': 'textvariable',
+            'from_': 0,
+            'to': 100,
+            'increment': 1,
+            'width': 4,
+            }
         }
 
 

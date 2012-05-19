@@ -23,6 +23,7 @@
     {
         "name": "LickOutput1",
         "type": "float",
+        "widget": "SafeSpinbox",
         "from_": 0.0,
         "to": 0.5,
         "increment": 0.01
