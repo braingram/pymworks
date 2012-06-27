@@ -4,6 +4,7 @@ Requirements
 ----
 
 - Numpy (for np.inf and np.nan)
+- (optional) pytables (for conversion to hdf5)
 
 
 Notes
