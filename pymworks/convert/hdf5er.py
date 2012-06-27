@@ -38,12 +38,12 @@ class HDF5Sink(object):
 
     def convert(self, datafile):
         self.setup(datafile)
-        self.write_codec(self, datafile.codec)
-        self.write_events(self, datafile.get_events())
+        self.write_codec(datafile.codec)
+        self.write_events(datafile.get_events())
 
     def setup(self, datafile):
         logging.debug("Setting up HDF5 file %s" % self._filename)
-        session = os.path.splitext(os.path.basename(datafile.filename))
+        session = os.path.splitext(os.path.basename(datafile.filename))[0]
         logging.debug("Found session for datafile: %s" % session)
         self._group = self._file.createGroup("/", session, \
                 "Data for session %s" % session)
@@ -56,7 +56,7 @@ class HDF5Sink(object):
 
     def write_codec(self, codec):
         logging.debug("Writing codec[%i keys] to file %s" % \
-                (len(codec.keys(), self._filename)))
+                (len(codec.keys()), self._filename))
         maxLen = 0
         maxStr = ""
         row = self._codec.row
@@ -101,4 +101,4 @@ def datafile_to_hdf5(datafile, filename):
     """
     h = HDF5Sink(filename)
     h.convert(datafile)
-    return h
+    h.close()

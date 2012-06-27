@@ -11,7 +11,4 @@ def to_hdf5(datafile, filename):
 def to_pickle(datafile, filename):
     return pickler.datafile_to_pickle(datafile, filename)
 
-__all__ = [\
-        'hdf5er', to_hdf5,
-        'pickler', to_pickle,
-        ]
+__all__ = ['hdf5er', 'pickler']
