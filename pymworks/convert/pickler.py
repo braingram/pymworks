@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import json
 import logging
 import cPickle as pickle
 
@@ -11,7 +10,8 @@ def datafile_to_pickle_data(datafile):
             'events': []}
     for e in datafile.get_events():
         pdata['events'].append(dict(code=e.code, time=e.time, \
-                value=json.dumps(e.value)))
+                value=e.value))
+    #            value=json.dumps(e.value)))
     return pdata
 
 
