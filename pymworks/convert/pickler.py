@@ -6,7 +6,7 @@ import cPickle as pickle
 
 
 def datafile_to_pickle_data(datafile):
-    logging.debug("converting datafile to pickledata: %s" % datafile._filename)
+    logging.debug("converting datafile to pickledata: %s" % datafile.filename)
     pdata = {'codec': datafile.codec, 'revCodec': datafile.rcodec, \
             'events': []}
     for e in datafile.get_events():
