@@ -16,7 +16,7 @@ from ScarabMarshal import *
 from types import *
 import string
 import struct
-import numpy as np
+#import numpy as np
 
 MAGIC = "\x89" + "CBF"
 MAJOR = 0
@@ -283,13 +283,13 @@ class LDOBinaryUnmarshaler(Unmarshaler):
     def um_float_nan(self):
         #raise NotImplemented, \
         #    "FLOAT_NAN not supported in LDO/Python"
-        return(np.nan)
+        return float('nan')
     um_dispatch[FLOAT_NAN] = um_float_nan
 
     def um_float_inf(self):
         #raise NotImplemented, \
         #    "FLOAT_INF not supported in LDO/Python"
-        return(np.inf)
+        return float('inf')
     um_dispatch[FLOAT_INF] = um_float_inf
 
     def um_opaque(self):

@@ -8,7 +8,12 @@ import cPickle as pickle
 
 import LDOBinary
 
-import numpy
+hasnumpy = False
+try:
+    import numpy
+    hasnumpy = True
+except ImportError:
+    hasnumpy = False
 
 
 Event = collections.namedtuple('Event', 'code time value')
@@ -84,17 +89,15 @@ class DataFile:
         that returns True if a passed in event matches the key
 
         key can any of these types:
-            int, numpy.integer
-            str, numpy.str
-            list, tuple, ndarray of str or int or mix of str & int
+            int, str, list, tuple, etc..
         """
         if key is None:
             return lambda e: True
         elif isinstance(key, str):
             return self.key_to_test(self.to_code(key))
-        elif isinstance(key, (int, numpy.integer, numpy.long)):
+        elif isinstance(key, int):
             return lambda e: e.code == key
-        elif isinstance(key, (tuple, list, numpy.ndarray)):
+        elif hasattr(key, '__getitem__'):
             codes = map(lambda k: self.to_code(k) if isinstance(k, str) \
                     else k, key)
             return lambda e: e.code in codes
@@ -107,7 +110,7 @@ class DataFile:
         """
         if time_range is None:
             return lambda e: True
-        elif isinstance(time_range, (tuple, list, numpy.ndarray)):
+        elif hasattr(time_range, '__getitem__'):
             if len(time_range) != 2:
                 raise ValueError("Time range [len:%i] must be length 2" % \
                         len(time_range))
@@ -132,9 +135,7 @@ class DataFile:
             time_range_to_test(time_range)(event) == True
 
         key can any of these types:
-            int, numpy.integer
-            str, numpy.str
-            list, tuple, ndarray of str or int or mix of str & int
+            int, str, list, tuple, etc..
 
         time_range (2 length tuple/list/ndarray) of times
         """
@@ -234,7 +235,7 @@ class DataFile:
         """
         position = self.file.tell()
         try:
-            mintime = numpy.inf
+            mintime = float('inf')
             maxtime = 0
             for event in self.all_events:
                 mintime = min(event.time, mintime)
@@ -329,9 +330,9 @@ class IndexedDataFile(DataFile):
     def get_key_filtered_events(self, key):
         if isinstance(key, str):
             codes = [self.to_code(key)]
-        elif isinstance(key, (int, numpy.integer, numpy.long)):
+        elif isinstance(key, int):
             codes = [key]
-        elif isinstance(key, (tuple, list, numpy.ndarray)):
+        elif hasattr(key, '__getitem__'):
             codes = map(lambda k: self.to_code(k) if isinstance(k, str) \
                     else k, key)
         else:
@@ -376,6 +377,7 @@ def to_array(events, value_type=None):
         'time' : type = 'u8'
         'value': type = value_type or type(events[0].value) or 'u1'
     """
+    assert hasnumpy, "failed to import numpy"
     if value_type is None:
         vtype = type(events[0].value) if len(events) else 'u1'
     else:
