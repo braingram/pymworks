@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import collections
+import hashlib
 import logging
 import os
 #import pickle
@@ -8,7 +9,12 @@ import cPickle as pickle
 
 import LDOBinary
 
-import numpy
+hasnumpy = False
+try:
+    import numpy
+    hasnumpy = True
+except ImportError:
+    hasnumpy = False
 
 
 Event = collections.namedtuple('Event', 'code time value')
@@ -84,17 +90,15 @@ class DataFile:
         that returns True if a passed in event matches the key
 
         key can any of these types:
-            int, numpy.integer
-            str, numpy.str
-            list, tuple, ndarray of str or int or mix of str & int
+            int, str, list, tuple, etc..
         """
         if key is None:
             return lambda e: True
         elif isinstance(key, str):
             return self.key_to_test(self.to_code(key))
-        elif isinstance(key, (int, numpy.integer, numpy.long)):
+        elif isinstance(key, int):
             return lambda e: e.code == key
-        elif isinstance(key, (tuple, list, numpy.ndarray)):
+        elif hasattr(key, '__getitem__'):
             codes = map(lambda k: self.to_code(k) if isinstance(k, str) \
                     else k, key)
             return lambda e: e.code in codes
@@ -107,7 +111,7 @@ class DataFile:
         """
         if time_range is None:
             return lambda e: True
-        elif isinstance(time_range, (tuple, list, numpy.ndarray)):
+        elif hasattr(time_range, '__getitem__'):
             if len(time_range) != 2:
                 raise ValueError("Time range [len:%i] must be length 2" % \
                         len(time_range))
@@ -132,9 +136,7 @@ class DataFile:
             time_range_to_test(time_range)(event) == True
 
         key can any of these types:
-            int, numpy.integer
-            str, numpy.str
-            list, tuple, ndarray of str or int or mix of str & int
+            int, str, list, tuple, etc..
 
         time_range (2 length tuple/list/ndarray) of times
         """
@@ -234,7 +236,7 @@ class DataFile:
         """
         position = self.file.tell()
         try:
-            mintime = numpy.inf
+            mintime = float('inf')
             maxtime = 0
             for event in self.all_events:
                 mintime = min(event.time, mintime)
@@ -276,6 +278,11 @@ class IndexedDataFile(DataFile):
                                 "wrong type: %s" % \
                                         (index_filename, str(wrong_type)))
                     self.parse_index()
+                    file_hash = self.hash_file()
+                    if self._hash != file_hash:
+                        logging.debug("File hashes did not match")
+                        raise Exception("File hash[%s] != stored hash[%s]" % \
+                                (self._hash, file_hash))
             except Exception as E:
                 logging.warning("Failed to load index file(%s): %s" % \
                         (index_filename, str(E)))
@@ -304,19 +311,32 @@ class IndexedDataFile(DataFile):
                 self._index[code] = []
 
         # get codec and time ranges
-        self._index.update({'_codec': self.codec, \
-                '_mintime': self.minimum_time, '_maxtime': self.maximum_time})
+        self._index.update({ \
+                '_codec': self.codec, \
+                '_mintime': self.minimum_time, \
+                '_maxtime': self.maximum_time, \
+                '_hash': self.hash_file(), \
+                })
 
         self.parse_index()
+        self._index['_hash'] = self._hash
 
         # save index to file
         with open(index_filename, 'wb') as index_file:
             pickle.dump(self._index, index_file, 2)
 
     def parse_index(self):
+        self._hash = self._index['_hash']
         self._codec = self._index['_codec']
         self._mintime = self._index['_mintime']
         self._maxtime = self._index['_maxtime']
+
+    def hash_file(self):
+        md5 = hashlib.md5()
+        with open(self.filename, 'rb') as f:
+            for chunk in iter(lambda: f.read(8192), b''):
+                md5.update(chunk)
+        return md5.digest()
 
     def event_at(self, position):
         """
@@ -329,9 +349,9 @@ class IndexedDataFile(DataFile):
     def get_key_filtered_events(self, key):
         if isinstance(key, str):
             codes = [self.to_code(key)]
-        elif isinstance(key, (int, numpy.integer, numpy.long)):
+        elif isinstance(key, int):
             codes = [key]
-        elif isinstance(key, (tuple, list, numpy.ndarray)):
+        elif hasattr(key, '__getitem__'):
             codes = map(lambda k: self.to_code(k) if isinstance(k, str) \
                     else k, key)
         else:
@@ -376,6 +396,7 @@ def to_array(events, value_type=None):
         'time' : type = 'u8'
         'value': type = value_type or type(events[0].value) or 'u1'
     """
+    assert hasnumpy, "failed to import numpy"
     if value_type is None:
         vtype = type(events[0].value) if len(events) else 'u1'
     else:
@@ -385,6 +406,9 @@ def to_array(events, value_type=None):
 
 
 def open_file(filename, indexed=True):
+    """
+    Open a MWorks file for reading.
+    """
     if indexed:
         return IndexedDataFile(filename)
     else:

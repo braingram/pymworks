@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import json
+import logging
 import os
 import socket
 import sys
@@ -26,7 +27,7 @@ def parse_config(filename):
         try:
             j = json.load(open(filename, 'r'))
         except Exception as E:
-            sys.stderr.write("Loading %s failed with %s\n" % (filename, E))
+            logging.error("Loading %s failed with %s" % (filename, E))
             j = {}
     else:
         j = {}
@@ -70,6 +71,12 @@ class MainManager(object):
             return False
         
         
+=======
+        except Exception as E:
+            logging.error(\
+                    "Adding client[%s:%s] with template %s failed with %s" % \
+                    (host, port, template, E))
+>>>>>>> a5eac22c085ed55bb253cddc9e5ce0d0f1e6a4a2
 
     def update(self, dt):
         [cm.update() for cm in self.cms]
