@@ -2,6 +2,7 @@
 
 import json
 import os
+import socket
 import sys
 
 import Tkinter as tk
@@ -54,13 +55,21 @@ class MainManager(object):
         self.cms = []
         self.cvs = []
 
-    def add_client(self, parent, host, port, template):
-        cm = clientmodel.ClientManager(host=host, port=port)
-        prefix = str(len(self.cms)) + '_'
-        cv = clientmodel.ClientView(cm, parent, \
-                prefix=prefix, template_file=template)
-        self.cms.append(cm)
-        self.cvs.append(cv)
+    def add_client(self, parent, host, port, template, timeout=None):
+        host = socket.gethostbyname(host)
+        try:
+            cm = clientmodel.ClientManager(host=host, port=port, timeout=timeout)
+            prefix = str(len(self.cms)) + '_'
+            cv = clientmodel.ClientView(cm, parent, \
+                    prefix=prefix, template_file=template)
+            self.cms.append(cm)
+            self.cvs.append(cv)
+            return True
+        except Exception as E:
+            print("Couldn't add client %s:%s %s" % (host, port, E))
+            return False
+        
+        
 
     def update(self, dt):
         [cm.update() for cm in self.cms]
@@ -106,9 +115,9 @@ class MainView(object):
 
     def add_client(self):
         host, port, template = self.read_client_info()
-        self.manager.add_client(self.client_frame, host, port, template)
-        self.set_next_client_info(and_pop=True)
-
+        if self.manager.add_client(self.client_frame, host, port, template, timeout=1.):
+            self.set_next_client_info(and_pop=True)
+    
     def read_client_info(self):
         return self.read_host(), self.read_port(), self.read_template()
 
@@ -137,9 +146,9 @@ class MainView(object):
         acis = []
         for (ci, c) in enumerate(self.defaults['clients']):
             if c['autoconnect']:
-                self.manager.add_client(self.client_frame, \
-                        c['host'], c['port'], c['template'])
-                acis.append(ci)
+                if self.manager.add_client(self.client_frame, \
+                        c['host'], c['port'], c['template']):
+                    acis.append(ci)
 
         # remove autoconnected clients
         for ci in acis[::-1]:

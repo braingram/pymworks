@@ -8,10 +8,11 @@ from datafile import Event
 
 
 class TCPReader(object):
-    def __init__(self, host, port):
+    def __init__(self, host, port, timeout=None):
         self.host = host
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.settimeout(timeout)
         self.ldo = None
         self.connect()
 
@@ -44,10 +45,11 @@ class FakeReader(object):
 
 
 class TCPWriter(object):
-    def __init__(self, host, port):
+    def __init__(self, host, port, timeout=None):
         self.host = host
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.settimeout(timeout)
         self.ldo = None
         self.connect()
 
@@ -74,7 +76,7 @@ class Client(object):
     """
     Fake mworks client
     """
-    def __init__(self, host='127.0.0.1', port=19989):
+    def __init__(self, host='127.0.0.1', port=19989, timeout=None):
         """
         Look in mw_core/core/events/eventconstants.h for more info on
                 system events
@@ -82,8 +84,8 @@ class Client(object):
         self.host = host
         self.port = port
         # must connect in this order
-        self.reader = TCPReader(self.host, self.port)
-        self.writer = TCPWriter(self.host, self.port)
+        self.reader = TCPReader(self.host, self.port, timeout=timeout)
+        self.writer = TCPWriter(self.host, self.port, timeout=timeout)
 
         # write client connected to server response
         #self.write_event([1, int(time.time() * 1E6), \
