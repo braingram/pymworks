@@ -60,6 +60,8 @@ class Source(IODevice):
         self.register_callback(0, self.process_codec_event)
         if autostart:
             self.start()
+        # for backwards compatibility
+        self.next_event = self.read_event
 
     # ------ codec ------
     def to_code(self, name):
@@ -133,7 +135,6 @@ class Source(IODevice):
                 return
             self.process_event(e)
 
-    next_event = read_event
     minimum_time = property(get_minimum_time)
     maximum_time = property(get_maximum_time)
     codec = property(get_codec)

@@ -52,6 +52,8 @@ class DataFile(Source):
         self.filename = filename
         if autostart:
             self.start()
+        # for backwards compatibility
+        self.close = self.stop
 
     def start(self):
         if self._running:
@@ -83,6 +85,14 @@ class DataFile(Source):
     # get_reverse_codec
     # process_codec_event
     # find_codec
+    def find_codec(self):
+        if self._codec is None:
+            cevs = self.get_events(0)
+            if len(cevs) == 0:
+                raise LookupError("Failed to find codec")
+            self.process_codec_event(cevs[-1])
+        if self._codec is None:
+            raise LookupError("Failed to find codec")
 
     def read_event(self):
         self.require_running()
@@ -105,6 +115,7 @@ class DataFile(Source):
         kt, tt = make_tests(key, time_range, self.to_code)
         #kt, tt
         events = []
+        self.restart_file()
         e = self.read_event()
         while e is not None:
             if kt(e) and tt(e):
@@ -251,3 +262,9 @@ class DataFileWriter(Sink):
     def write_event(self, event):
         self.require_running()
         self.ldo._marshal([event.code, event.time, event.value])
+
+
+def open_file(fn, indexed=True):
+    if indexed:
+        return IndexedDataFile(fn)
+    return DataFile(fn)
