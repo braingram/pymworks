@@ -1,3 +1,9 @@
+Wrote base io class
+need:
+- testing & documentation
+- easy open function (and default port 19989)
+- flask ui (for datafiles & streams)
+
 This is a pure-python module for reading mworks data files.
 
 Requirements
