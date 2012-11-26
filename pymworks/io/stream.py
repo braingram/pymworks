@@ -35,6 +35,7 @@ class StreamReader(Source):
             logging.error("StreamReader.start failed with: %s" % E)
             return
         self.rldo = LDOBinary.LDOBinaryUnmarshaler(self.rsocket.makefile('rb'))
+        self.rldo.um_init()
         Source.start(self)
 
     def stop(self):
@@ -135,6 +136,7 @@ class StreamWriter(Sink):
             logging.error("StreamWriter.start failed with: %s" % E)
             return
         self.wldo = LDOBinary.LDOBinaryMarshaler(self.wsocket.makefile('wb'))
+        self.wldo.m_init()
         Sink.start(self)
 
     def stop(self):
@@ -197,16 +199,16 @@ class Client(BufferedStreamReader, StreamWriter):
     def start(self):
         if self._running:
             return
-        BufferedStreamReader.start()
+        BufferedStreamReader.start(self)
         r = self._running
-        StreamWriter.start()
+        StreamWriter.start(self)
         self._running &= r
 
     def stop(self):
         if not self._running:
             return
-        BufferedStreamReader.stop()
-        StreamWriter.stop()
+        BufferedStreamReader.stop(self)
+        StreamWriter.stop(self)
 
     def now(self):
         return int(pytime.time() * 1E6 + self.tdelay)
