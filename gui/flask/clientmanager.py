@@ -40,24 +40,7 @@ Example:
     4) receive STATE(host)
 """
 
-import time
-
-from pymworks.event import Event
-import pymworks.stream
-#pymworks.stream.NamedCallbackCodecClient(host='', port=0)
-
-
-class StatefulClient(pymworks.stream.NamedCallbackCodecClient):
-    def __init__(self, **kwargs):
-        pymworks.stream.NamedCallbackCodecClient.__init__(self, **kwargs)
-        self.state = {}
-
-    def listen(self, name):
-        if name not in self.state:
-            self.register_callback(name, self.update_state)
-
-    def update_state(self, event):
-        self.state[event.name] = event
+import pymworks.io.stream
 
 
 def fail(s):
@@ -71,46 +54,17 @@ def success(r=None):
 class ClientManager(object):
     def __init__(self, hosts=None, names=None, tdelay=0):
         self.clients = {}
-        self.tdelay = tdelay
-
-    def now(self):
-        return int(time.time() * 1E6 + self.tdelay)
 
     def update(self, **kwargs):
         for c in self.clients.values():
             c.update(**kwargs)
 
-    def read(self, host='', name='', time=None):
-        if host not in self.clients:
-            raise ValueError('Unknown host[%s]' % host)
-        c = self.clients[host]
-        if name not in c.state:
-            raise ValueError('Variable state unknown[%s]' % name)
-        e = c.state[name]
-        if (time is not None) and (time >= e.time):
-            return None
-        return e
-
-    def write(self, host='', name='', value=None):
-        if host not in self.clients:
-            raise ValueError('Unknown host[%s]' % host)
-        c = self.clients[host]
-        code = c.rcodec[name]
-        c.write_event(Event(code, self.now(), value))
-
-    def listen(self, host='', name=''):
-        if host not in self.clients:
-            raise ValueError('Unknown host[%s]' % host)
-        self.clients[host].listen(name)
-
-    def state(self, host=''):
-        if host not in self.clients:
-            raise ValueError('Unknown host[%s]' % host)
-        return self.clients[host].state
-
-    def connect(self, host='fake', port=19989):
-        c = StatefulClient(host, port)
-        self.clients[c.host] = c
+    def connect(self, host='fake', port=19989, **kwargs):
+        try:
+            c = pymworks.io.stream.Client(host, port, **kwargs)
+            self.clients[c.host] = c
+        except Exception as E:
+            raise E
 
     def disconnect(self, host=None):
         if host not in self.clients:
@@ -121,8 +75,10 @@ class ClientManager(object):
     def process_query(self, **query):
         """
         query = dict
-        query['action'] = action to perform
-        query[...] = kwargs
+        query['client'] = client address
+        query['function'] = action to perform
+        query['args'] = arguments
+        query['kwargs'] = kwargs
 
         Returns
         ------
@@ -131,14 +87,23 @@ class ClientManager(object):
         result : varies
             Result of query
         """
-        a = query.pop('action', 'STATE')
-        if not (hasattr(self, a)):
-            return fail("Unknown action %s" % a)
+        c = query.pop('client', None)
+        f = query.pop('function', 'STATE')
+        a = query.pop('args', [])
+        kw = query.pop('kwargs', {})
+
         try:
-            r = getattr(self, a)(**query)
+            o = self if c is None else self.clients[c]
+        except KeyError:
+            return fail("Unknown client: %s" % c)
+
+        if not (hasattr(o, f)):
+            return fail("Unknown function %s" % f)
+        try:
+            r = getattr(o, f)(*a, **kw)
             return success(r)
         except Exception as E:
-            return fail("Action[%s] failed=%s" % (a, E))
+            return fail("function[%s.%s] failed=%s" % (o, f, E))
 
 
 if __name__ == '__main__':

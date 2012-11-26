@@ -57,4 +57,5 @@ def ajax():
 
 
 if __name__ == '__main__':
+    # TODO launch an 'updater' process that polls the server every N ms
     app.run()

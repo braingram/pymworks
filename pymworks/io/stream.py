@@ -190,6 +190,7 @@ class Client(BufferedStreamReader, StreamWriter):
         BufferedStreamReader.__init__(self, host, port=port, autostart=False, \
                 bufferlength=bufferlength)
         StreamWriter.__init__(self, host, port=port, autostart=False)
+        self.tdelay = 0
         if autostart:
             self.start()
 
@@ -207,8 +208,11 @@ class Client(BufferedStreamReader, StreamWriter):
         BufferedStreamReader.stop()
         StreamWriter.stop()
 
+    def now(self):
+        return int(pytime.time() * 1E6 + self.tdelay)
+
     def make_event(self, key, time, value):
         if isinstance(key, str):
             key = self.to_code(key)
-        time = int(pytime.time() * 1E6) if time is None else time
+        time = self.now() if time is None else time
         return Event(key, time, value, name=self.to_name(key))
