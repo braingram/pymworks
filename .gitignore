@@ -1,8 +1,7 @@
 *.pyc
-*.mwk
 *.swp
+*.mwk.index
 build/
 dist/
 pymworks.egg-info/
-test/*.mwk
 test/*.mwk.index

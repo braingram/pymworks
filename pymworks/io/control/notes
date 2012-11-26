@@ -1,0 +1,22 @@
+files of interest:
+    core/Core/Events/SystemEventFactory.cpp
+    core/Core/Events/EventConstants.h
+    core/Core/InterfaceHooks/ClientSide/Products/Client.cpp
+
+send_experiment : requires ExperimentPackager
+    p = packer.packageExperiment(fn?)
+    if p.isUndefined():
+        error!
+    event = new Event(RESERVED_SYSTEM_EVENT_CODE, p)
+    putEvent(event)
+
+sendprotocolselectedEvent: systemEventFactory:protocolSelectionControl(name)
+send(Run/Stop/Pause/Unpause)Event: systemEventFactory:(start/stop/pause/unpause)ExperimentControl
+sendOpenDataFileEvent: systemEventFactory:dataFileOpenControl(filename, options??)
+sendCloseDataFileEvent: systemEventFactory:closeDataFileControl(filename, options??)
+... sendCloseExperimentEvent
+sendSaveVariables: systemEventFacotry...(fn, overwrite, false?)
+sendLoadVariables: sEF..(fn, false)
+
+
+client side variable set loading does not exist: see apps/client/AppController.m:272-274
