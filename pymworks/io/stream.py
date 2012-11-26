@@ -6,7 +6,7 @@ import select
 import socket
 import time as pytime
 
-from base import Source, Sink
+from base import Stream
 from datafile import key_to_code, make_tests
 from ..event import Event
 from raw import LDOBinary
@@ -14,9 +14,9 @@ from raw import LDOBinary
 defaultport = 19989
 
 
-class StreamReader(Source):
+class EventStream(Stream):
     def __init__(self, host, port=defaultport, autostart=True, timeout=None):
-        Source.__init__(self, autostart=False)
+        Stream.__init__(self, autostart=False)
         self.host = host
         self.port = port
         self.timeout = timeout
@@ -31,12 +31,27 @@ class StreamReader(Source):
             self.rsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.rsocket.settimeout(self.timeout)
             self.rsocket.connect((self.host, self.port))
-        except Exception as E:
+        except socket.error as E:
             logging.error("StreamReader.start failed with: %s" % E)
+            if hasattr(self, 'rsocket'):
+                del self.rsocket
+            return
+        try:
+            self.wsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.wsocket.settimeout(self.timeout)
+            self.wsocket.connect((self.host, self.port))
+        except socket.error as E:
+            logging.error("StreamReader.start failed with: %s" % E)
+            if hasattr(self, 'wsocket'):
+                del self.wsocket
+            self.rsocket.shutdown(socket.SHUT_RD)
+            self.rsocket.close()
+            del self.rsocket
             return
         self.rldo = LDOBinary.LDOBinaryUnmarshaler(self.rsocket.makefile('rb'))
-        self.rldo.um_init()
-        Source.start(self)
+        self.wldo = LDOBinary.LDOBinaryMarshaler(self.wsocket.makefile('wb'))
+        self.wldo.written_stream_header = 1  # don't write the stream header
+        Stream.start(self)
 
     def stop(self):
         if not self._running:
@@ -45,7 +60,11 @@ class StreamReader(Source):
             self.rsocket.shutdown(socket.SHUT_RD)
             self.rsocket.close()
             del self.rsocket
-        Source.stop(self)
+        if hasattr(self, 'wsocket'):
+            self.wsocket.shutdown(socket.SHUT_WR)
+            self.wsocket.close()
+            del self.wsocket
+        Stream.stop(self)
 
     def read_event(self, safe=None):
         safe = self.safe if safe is None else safe
@@ -55,7 +74,7 @@ class StreamReader(Source):
             if (self._codec is not None) and (e.code in self._codec):
                 e.name = self._codec[e.code]
             return e
-        r, _, _ = select.select([self.rsocket], [], [], self.timeout)
+        r, _, _ = select.select([self.socket], [], [], self.timeout)
         if len(r):
             return self.read_event(safe=False)
         else:
@@ -66,11 +85,16 @@ class StreamReader(Source):
         raise NotImplementedError("StreamReader.get_events not possible, "
                 "use BufferedStreamReader")
 
+    def write_event(self, event):
+        self.require_running()
+        #self.wldo._marshal([event.code, event.time, event.value])
+        self.wldo.dump([event.code, event.time, event.value])
 
-class BufferedStreamReader(StreamReader):
+
+class BufferedEventStream(EventStream):
     def __init__(self, host, port=defaultport, autostart=True, timeout=None, \
             bufferlength=1):
-        StreamReader.__init__(self, host, port=port, \
+        EventStream.__init__(self, host, port=port, \
                 autostart=False, timeout=timeout)
         self.bufferlength = bufferlength
         self.eventbuffer = collections.defaultdict(list)
@@ -78,12 +102,13 @@ class BufferedStreamReader(StreamReader):
             self.start()
 
     def read_event(self, safe=None):
-        e = StreamReader.read_event(self, safe=safe)
+        e = EventStream.read_event(self, safe=safe)
         if e is None:
             return e
         b = self.eventbuffer[e.code]
         b.append(e)
         self.eventbuffer[e.code] = b[-self.bufferlength:]
+        return e
 
     def find_codec(self, **kwargs):
         if self._codec is None:
@@ -116,99 +141,46 @@ class BufferedStreamReader(StreamReader):
         return events
 
 
-class StreamWriter(Sink):
-    def __init__(self, host, port=defaultport, autostart=True, timeout=None):
-        Sink.__init__(self, autostart=False)
-        self.host = host
-        self.port = port
-        self.timeout = timeout
-        if autostart:
-            self.start()
-
-    def start(self):
-        if self._running:
-            return
-        try:
-            self.wsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.wsocket.settimeout(self.timeout)
-            self.wsocket.connect((self.host, self.port))
-        except Exception as E:
-            logging.error("StreamWriter.start failed with: %s" % E)
-            return
-        self.wldo = LDOBinary.LDOBinaryMarshaler(self.wsocket.makefile('wb'))
-        self.wldo.m_init()
-        Sink.start(self)
-
-    def stop(self):
-        if not self._running:
-            return
-        if hasattr(self, 'socket'):
-            self.wsocket.shutdown(socket.SHUT_WR)
-            self.wsocket.close()
-            del self.wsocket
-        Sink.stop(self)
-
-    def write_event(self, event):
-        self.require_running()
-        #self.wldo._marshal([event.code, event.time, event.value])
-        self.wldo.dump([event.code, event.time, event.value])
-        self.wldo.flush()
+#class ServerWriter(StreamWriter):
+#    def start(self):
+#        if self._running:
+#            return
+#        try:
+#            self.wsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#            self.wsocket.settimeout(self.timeout)
+#            self.wsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+#            self.wsocket.bind((self.host, self.port))
+#            self.wsocket.listen(1)
+#            self.wconn, self.waddr = self.wsocket.accept()
+#        except Exception as E:
+#            logging.error("ServerWriter.start failed with: %s" % E)
+#            return
+#        self.wldo = LDOBinary.LDOBinaryMarshaler(self.wconn.makefile('wb'))
+#        self.wldo.written_stream_header = 1  # don't write the stream header
+#        Sink.start(self)
+#
+#    def stop(self):
+#        if not self._running:
+#            return
+#        if hasattr(self, 'wconn'):
+#            self.wconn.shutdown(socket.SHUT_WR)
+#            self.wconn.close()
+#            del self.wconn
+#        if hasattr(self, 'socket'):
+#            self.wsocket.shutdown(socket.SHUT_WR)
+#            self.wsocket.close()
+#            del self.wsocket
+#        Sink.stop(self)
 
 
-class ServerWriter(StreamWriter):
-    def start(self):
-        if self._running:
-            return
-        try:
-            self.wsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.wsocket.settimeout(self.timeout)
-            self.wsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.wsocket.bind((self.host, self.port))
-            self.wsocket.listen(1)
-            self.wconn, self.waddr = self.wsocket.accept()
-        except Exception as E:
-            logging.error("ServerWriter.start failed with: %s" % E)
-            return
-        self.wldo = LDOBinary.LDOBinaryMarshaler(self.wconn.makefile('wb'))
-        Sink.start(self)
-
-    def stop(self):
-        if not self._running:
-            return
-        if hasattr(self, 'wconn'):
-            self.wconn.shutdown(socket.SHUT_WR)
-            self.wconn.close()
-            del self.wconn
-        if hasattr(self, 'socket'):
-            self.wsocket.shutdown(socket.SHUT_WR)
-            self.wsocket.close()
-            del self.wsocket
-        Sink.stop(self)
-
-
-class Client(BufferedStreamReader, StreamWriter):
+class Client(BufferedEventStream):
     def __init__(self, host, port=defaultport, autostart=True, timeout=None, \
             bufferlength=1):
-        BufferedStreamReader.__init__(self, host, port=port, autostart=False, \
+        BufferedEventStream.__init__(self, host, port=port, autostart=False, \
                 bufferlength=bufferlength)
-        StreamWriter.__init__(self, host, port=port, autostart=False)
         self.tdelay = 0
         if autostart:
             self.start()
-
-    def start(self):
-        if self._running:
-            return
-        BufferedStreamReader.start(self)
-        r = self._running
-        StreamWriter.start(self)
-        self._running &= r
-
-    def stop(self):
-        if not self._running:
-            return
-        BufferedStreamReader.stop(self)
-        StreamWriter.stop(self)
 
     def now(self):
         return int(pytime.time() * 1E6 + self.tdelay)

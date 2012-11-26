@@ -244,9 +244,11 @@ class IndexedDataFile(DataFile):
 
 
 class DataFileWriter(Sink):
-    def __init__(self, filename):
-        Sink.__init__(self)
+    def __init__(self, filename, autostart=True):
+        Sink.__init__(self, autostart=False)
         self.filename = filename
+        if autostart:
+            self.start()
 
     def start(self):
         self.file = open(self.filename, 'wb')

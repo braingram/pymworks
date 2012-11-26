@@ -149,3 +149,11 @@ class Sink(IODevice):
 
     def write_event(self):
         self.require_running()
+
+
+class Stream(Source, Sink):
+    def __init__(self, autostart=True):
+        Source.__init__(self, autostart=False)
+        Sink.__init__(self, autostart=False)
+        if autostart:
+            self.start()
