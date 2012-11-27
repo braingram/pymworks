@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+See core/Core/Events/EventConstants.h in mworks repo for event info
+"""
 
 import collections
 import time as pytime
@@ -45,3 +48,39 @@ def fake_codec_event(codec=None, time=None):
         dcodec[k] = dict(tagname=dcodec[k])
     time = int(pytime.time() * 1E6) if time is None else time
     return Event(0, time, dcodec)
+
+
+SystemEventType = {'control': 1000, 'data': 1001, 'response': 1002}
+SystemPayloadType = {
+        'experiment': 2000,
+        'protocol': 2001,
+        'datafile': 2004,
+
+        # control events (no payload except protocol_selection)
+        'protocol_selection': 3001,
+        'start_experiment': 3002,
+        'stop_experiment': 3003,
+        'pause_experiment': 3004,
+        'open_datafile': 3005,
+        'close_datafile': 3006,
+        'close_experiment': 3007,
+        'save_variables': 3008,
+        'load_variables': 3009,
+        'request_codec': 3010,
+        'set_event_forwarding': 3011,
+        'request_variables': 3012,
+
+        # response messages
+        'datafile_opened': 4007,
+        'datafile_closed': 4008,
+        'client_connected': 4009,
+        'client_disconnected': 4010,
+        'server_connected': 4011,
+        'server_disconnected': 4012,
+        'experiment_state': 4013,
+
+        # payload contains anything
+        'user_defined': 6000,
+        }
+
+SystemResponseCode = {'success': 5001, 'failure': 5002}
