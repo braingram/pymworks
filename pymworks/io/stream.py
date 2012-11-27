@@ -8,7 +8,7 @@ import time as pytime
 
 from base import Stream
 from datafile import key_to_code, make_tests
-from ..event import Event
+from ..events.event import Event
 from raw import LDOBinary
 
 defaultport = 19989

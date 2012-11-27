@@ -1,11 +1,19 @@
 #!/usr/bin/env python
 
+import time
+
+from event import Event
+
 hasnumpy = False
 try:
     import numpy
     hasnumpy = True
 except ImportError:
     hasnumpy = False
+
+
+def now():
+    return int(time.time() * 1E6)
 
 
 def unpack_events(events):
@@ -34,3 +42,18 @@ def to_array(events, value_type=None):
     return numpy.array(map(lambda e: (e.code, e.time, e.value), events), \
             dtype=[('code', 'u2'), \
             ('time', 'u8'), ('value', vtype)])
+
+
+def fake_codec_event(codec=None, time=None):
+    dcodec = { \
+            0: '#codec',
+            1: '#systemEvent',
+            2: '#components',
+            3: '#termination',
+            }
+    if codec is not None:
+        dcodec.update(codec)
+    for k in dcodec:
+        dcodec[k] = dict(tagname=dcodec[k])
+    time = now() if time is None else time
+    return Event(0, time, dcodec)

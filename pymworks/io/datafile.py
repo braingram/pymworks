@@ -7,7 +7,7 @@ import os
 #import pickle
 import cPickle as pickle
 
-from ..event import Event
+from ..events.event import Event
 from base import Source, Sink
 from raw import LDOBinary
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from io import datafile, stream, load
-from event import Event
+from events.event import Event
 
 from io.datafile import DataFile, IndexedDataFile, open_file
 from io.stream import Client
