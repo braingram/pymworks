@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="us">
+<head>
+	<meta charset="utf-8">
+    <title>jquery Filetree test</title>
+    <link href="css/jqueryFileTree.css" rel="stylesheet"></link>
+    <script src="js/jquery.js"></script>
+    <script src="js/jqueryFileTree.js"></script>
+    <style>
+    </style>
+    <script>
+        $(function() {
+            $("#filetree").fileTree({
+                root: "~",
+                script: "../"
+            }, function(file) { alert(file); });
+        });
+    </script>
+</head>
+<body>
+    <div id="filetree">
+    </div>
+</body>
+</html>
