@@ -11,7 +11,7 @@ import flask
 app = flask.Flask('fileTree')
 
 
-@app.route('/', methods=['POST'])
+@app.route('/sfiles', methods=['POST'])
 def dirlist():
     r = ['<ul class="jqueryFileTree" style="display: none;">']
     try:
@@ -32,5 +32,10 @@ def dirlist():
         r.append('Could not load directory: %s' % str(e))
     r.append('</ul>')
     return ''.join(r)
+
+
+@app.route('/')
+def default():
+    return flask.render_template('index.html')
 
 app.run(debug=True)

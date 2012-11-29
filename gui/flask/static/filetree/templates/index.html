@@ -3,16 +3,16 @@
 <head>
 	<meta charset="utf-8">
     <title>jquery Filetree test</title>
-    <link href="css/jqueryFileTree.css" rel="stylesheet"></link>
-    <script src="js/jquery.js"></script>
-    <script src="js/jqueryFileTree.js"></script>
+    <link href="{{ url_for('static', filename='css/jqueryFileTree.css') }}" rel="stylesheet"></link>
+    <script src="{{ url_for('static', filename='js/jquery.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jqueryFileTree.js') }}"></script>
     <style>
     </style>
     <script>
         $(function() {
             $("#filetree").fileTree({
                 root: "~",
-                script: "../"
+                script: "/sfiles"
             }, function(file) { alert(file); });
         });
     </script>
