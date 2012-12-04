@@ -121,7 +121,7 @@ class DataFile(Source):
             if kt(e) and tt(e):
                 events.append(e)
             e = self.read_event()
-        return sorted(events, lambda e: e.time)
+        return sorted(events, key=lambda e: e.time)
 
 
 class IndexedDataFile(DataFile):
@@ -229,7 +229,7 @@ class IndexedDataFile(DataFile):
     # overload event fetching to use index
     def get_events(self, key=None, time_range=None):
         if key is None:
-            DataFile.get_events(self, key, time_range)
+            return DataFile.get_events(self, key, time_range)
         tt = make_time_test(time_range, self.to_code)
         codes = key_to_code(key, self.to_code)
         if not isinstance(codes, (tuple, list)):
