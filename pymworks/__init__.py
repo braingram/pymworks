@@ -6,6 +6,8 @@ from events.event import Event
 from io.datafile import DataFile, IndexedDataFile, open_file
 from io.stream import Client
 
+from io.datafile import open_file as open
+
 __all__ = ['datafile', 'Event', 'DataFile', 'IndexedDataFile', 'open_file',
         'stream', 'Client', 'load']
 

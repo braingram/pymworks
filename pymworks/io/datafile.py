@@ -46,10 +46,36 @@ def make_tests(key, time_range, to_code):
             make_time_test(time_range, to_code)
 
 
+def resolve_filename(filename):
+    """
+    Helper function to deal with datafiles opened by the
+    old python mworks module
+
+    With the old module, when opening a file for the first time
+    an index would be created and a directory with the same name and path
+    as the file would be created. The original datafile would be placed
+    inside this directory for example
+
+    /home/user/foo.mwk
+
+    would become
+
+    /home/user/foo.mwk/foo.mwk
+
+    If autoresolve is True, pymworks will try to work around this by
+    resolving filenames that point to directories to filenames inside that
+    directory
+    """
+    if os.path.isdir(filename):
+        d, n = os.path.split(filename)
+        return os.path.join(d, n, n)
+    return filename
+
+
 class DataFile(Source):
-    def __init__(self, filename, autostart=True):
+    def __init__(self, filename, autostart=True, autoresolve=True):
         Source.__init__(self, autostart=False)
-        self.filename = filename
+        self.filename = resolve_filename(filename) if autoresolve else filename
         if autostart:
             self.start()
         # for backwards compatibility
@@ -132,8 +158,9 @@ class IndexedDataFile(DataFile):
         key = event code
         value = file locations of events
     """
-    def __init__(self, filename, autostart=True):
-        DataFile.__init__(self, filename, autostart=False)
+    def __init__(self, filename, autostart=True, autoresolve=True):
+        DataFile.__init__(self, filename, autostart=False, \
+                autoresolve=autoresolve)
         if autostart:
             self.start()
 
