@@ -57,3 +57,45 @@ def fake_codec_event(codec=None, time=None):
         dcodec[k] = dict(tagname=dcodec[k])
     time = now() if time is None else time
     return Event(0, time, dcodec)
+
+
+def sync(slave, master, direction=-1, skey=None, mkey=None):
+    """
+    Find closest matching slave event for each master event.
+
+    direction : int, -1, 0 or 1
+        if -1, slave events occur before master events
+        if  1, slave events occur after master events
+        if  0, slave and master events occur simultaneously
+    """
+    if skey is None:
+        skey = lambda s: s.time
+    if mkey is None:
+        mkey = lambda m: m.time
+    if not (direction in (-1, 0, 1)):
+        raise ValueError("direction [%s] must be -1, 0, or 1" % direction)
+    if direction is -1:
+        end = lambda s, m: s > m  # stop when slave time > master
+        ttest = lambda s, m: s < m
+        sslaves = sorted(slave, key=skey)
+    if direction is 1:
+        end = lambda s, m: s < m  # stop when slave time < master
+        ttest = lambda s, m: s > m
+        sslaves = sorted(slave, key=skey, reverse=True)
+    if direction is 0:
+        end = lambda s, m: s > m
+        ttest = lambda s, m: s == m
+        sslaves = sorted(slave, key=skey)
+
+    matches = []
+    for m in master:
+        last = None
+        for s in sslaves:
+            if end(skey(s), mkey(m)):
+                if ttest(skey(last), mkey(m)):
+                    matches.append(last)
+                else:
+                    matches.append(None)
+                break
+            last = s
+    return matches
