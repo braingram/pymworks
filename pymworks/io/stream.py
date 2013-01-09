@@ -74,7 +74,7 @@ class EventStream(Stream):
             if (self._codec is not None) and (e.code in self._codec):
                 e.name = self._codec[e.code]
             return e
-        r, _, _ = select.select([self.socket], [], [], self.timeout)
+        r, _, _ = select.select([self.rsocket], [], [], self.timeout)
         if len(r):
             return self.read_event(safe=False)
         else:
@@ -85,10 +85,108 @@ class EventStream(Stream):
         raise NotImplementedError("StreamReader.get_events not possible, "
                 "use BufferedStreamReader")
 
-    def write_event(self, event):
+    def write_event(self, event, flush=True):
         self.require_running()
-        #self.wldo._marshal([event.code, event.time, event.value])
         self.wldo.dump([event.code, event.time, event.value])
+        if flush:
+            self.wldo.flush()
+
+    def update(self, n=100, **kwargs):
+        try:
+            Stream.update(self, n, **kwargs)
+        except socket.timeout:
+            logging.debug("Update timed out")
+            return
+
+
+class EchoServer(Stream):
+    def __init__(self, host, port=defaultport, autostart=True, timeout=None):
+        Stream.__init__(self, autostart=False)
+        self.host = host
+        self.port = port
+        self.timeout = timeout
+        self.safe = False
+        if autostart:
+            self.start()
+
+    def start(self):
+        if self._running:
+            return
+        try:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.settimeout(self.timeout)
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.socket.bind((self.host, self.port))
+            self.socket.listen(1)
+            self.wconn, self.waddr = self.socket.accept()
+            self.wconn.settimeout(self.timeout)
+        except socket.error as E:
+            logging.error("EchoServer.start failed with: %s" % E)
+            del self.socket
+            return
+
+        try:
+            self.rconn, self.raddr = self.socket.accept()
+            self.rconn.settimeout(self.timeout)
+        except socket.error as E:
+            self.wconn.close()
+            del self.wconn, self.waddr, self.socket
+            return
+
+        self.rldo = LDOBinary.LDOBinaryUnmarshaler(self.rconn.makefile('rb'))
+        self.rldo.read_stream_header = 1  # don't read the stream header
+        self.wldo = LDOBinary.LDOBinaryMarshaler(self.wconn.makefile('wb'))
+        self.wldo.m_init()
+        Stream.start(self)
+
+    def stop(self):
+        if not self._running:
+            return
+        if hasattr(self, 'rconn'):
+            self.rconn.shutdown(socket.SHUT_RD)
+            self.rconn.close()
+            del self.rconn
+        if hasattr(self, 'wconn'):
+            self.wconn.shutdown(socket.SHUT_RD)
+            self.wconn.close()
+            del self.wconn
+        if hasattr(self, 'socket'):
+            self.socket.shutdown(socket.SHUT_RD)
+            self.socket.close()
+            del self.socket
+        Stream.stop(self)
+
+    def read_event(self, safe=None):
+        safe = self.safe if safe is None else safe
+        self.require_running()
+        if safe is False:
+            e = Event(*self.rldo.load())
+            if (self._codec is not None) and (e.code in self._codec):
+                e.name = self._codec[e.code]
+            print e
+            return e
+        r, _, _ = select.select([self.rconn], [], [], self.timeout)
+        if len(r):
+            return self.read_event(safe=False)
+        else:
+            return None
+
+    # overload methods that will not work (get_events...)
+    def get_events(self, **kwargs):
+        raise NotImplementedError("EchoServer.get_events not possible")
+
+    def write_event(self, event, flush=True):
+        self.require_running()
+        self.wldo.dump([event.code, event.time, event.value])
+        if flush:
+            self.wldo.flush()
+
+    def update(self, n=100, **kwargs):
+        try:
+            Stream.update(self, n, **kwargs)
+        except socket.timeout:
+            logging.debug("Update timed out")
+            return
 
 
 class BufferedEventStream(EventStream):
@@ -141,43 +239,11 @@ class BufferedEventStream(EventStream):
         return events
 
 
-#class ServerWriter(StreamWriter):
-#    def start(self):
-#        if self._running:
-#            return
-#        try:
-#            self.wsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#            self.wsocket.settimeout(self.timeout)
-#            self.wsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-#            self.wsocket.bind((self.host, self.port))
-#            self.wsocket.listen(1)
-#            self.wconn, self.waddr = self.wsocket.accept()
-#        except Exception as E:
-#            logging.error("ServerWriter.start failed with: %s" % E)
-#            return
-#        self.wldo = LDOBinary.LDOBinaryMarshaler(self.wconn.makefile('wb'))
-#        self.wldo.written_stream_header = 1  # don't write the stream header
-#        Sink.start(self)
-#
-#    def stop(self):
-#        if not self._running:
-#            return
-#        if hasattr(self, 'wconn'):
-#            self.wconn.shutdown(socket.SHUT_WR)
-#            self.wconn.close()
-#            del self.wconn
-#        if hasattr(self, 'socket'):
-#            self.wsocket.shutdown(socket.SHUT_WR)
-#            self.wsocket.close()
-#            del self.wsocket
-#        Sink.stop(self)
-
-
 class Client(BufferedEventStream):
     def __init__(self, host, port=defaultport, autostart=True, timeout=None, \
             bufferlength=1):
         BufferedEventStream.__init__(self, host, port=port, autostart=False, \
-                bufferlength=bufferlength)
+                bufferlength=bufferlength, timeout=timeout)
         self.tdelay = 0
         if autostart:
             self.start()
