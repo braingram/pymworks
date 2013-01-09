@@ -264,11 +264,12 @@ class IndexedDataFile(DataFile):
         if not isinstance(codes, (tuple, list)):
             codes = [codes, ]
         events = []
-        for code in codes:
-            for p in self._index[code]:
-                e = self._event_at(p)
-                if tt(e):
-                    events.append(e)
+        indices = reduce(lambda x, y: x + y, \
+                [self._index[code] for code in codes])
+        for i in sorted(indices):
+            e = self._event_at(i)
+            if tt(e):
+                events.append(e)
         return events
 
 
