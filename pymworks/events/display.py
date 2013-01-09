@@ -103,7 +103,17 @@ def to_pixel_clock_codes(events):
     return codes
 
 
-def to_trials(stim_display_events, outcome_events):
+def to_trials(stim_display_events, outcome_events, remove_unknown=True,
+        duration_multiplier=2):
+    """
+    If remove_unknown, any trials where a corresponding outcome_event cannot
+    be found will be removed.
+
+    If duration_multiplier is not None, to_trials will check to see if the
+    outcome event occured within duration_multiplier * duration microseconds
+    of the trial start. If the outcome event occured later, the trial outcome
+    will be marked as unknown.
+    """
     if (len(outcome_events) == 0) or (len(stim_display_events) == 0):
         return []
     assert hasattr(outcome_events[0], 'name')
@@ -117,7 +127,23 @@ def to_trials(stim_display_events, outcome_events):
             direction=1, mkey=lambda x: x['time'])
 
     assert len(trials) == len(outcomes)
+    unknowns = []
+    if duration_multiplier is None:
+        dtest = lambda t, o: True
+    else:
+        dtest = lambda t, o: \
+                o.time < (t['time'] + t['duration'] * duration_multiplier)
     for i in xrange(len(trials)):
-        trials[i]['outcome'] = outcomes[i].name
+        if (outcomes[i] is not None) and dtest(trials[i], outcomes[i]):
+            trials[i]['outcome'] = outcomes[i].name
+        else:
+            if remove_unknown:
+                unknowns.append(i)
+            else:
+                trials[i]['outcome'] = 'unknown'
+
+    # remove trials with 'unknown' outcome, in reverse
+    for u in unknowns[::-1]:
+        del trials[u]
 
     return trials

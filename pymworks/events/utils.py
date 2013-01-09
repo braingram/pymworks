@@ -92,10 +92,12 @@ def sync(slave, master, direction=-1, skey=None, mkey=None):
         last = None
         for s in sslaves:
             if end(skey(s), mkey(m)):
-                if ttest(skey(last), mkey(m)):
+                if (last is not None) and ttest(skey(last), mkey(m)):
                     matches.append(last)
                 else:
                     matches.append(None)
                 break
             last = s
+    while len(matches) < len(master):
+        matches.append(None)
     return matches
