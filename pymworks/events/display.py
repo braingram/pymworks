@@ -7,6 +7,8 @@ blank screen may always be there (never disappear)
 import copy
 import logging
 
+import utils
+
 
 blacklisttests = [
         #lambda s: (('name' in s.keys()) and (s['name'] == 'pixel clock')),
@@ -99,3 +101,23 @@ def to_pixel_clock_codes(events):
         if codes is not None:
             codes.append((e.time, code))
     return codes
+
+
+def to_trials(stim_display_events, outcome_events):
+    if (len(outcome_events) == 0) or (len(stim_display_events) == 0):
+        return []
+    assert hasattr(outcome_events[0], 'name')
+
+    trials = to_stims(stim_display_events)
+
+    if (len(trials) == 0):
+        return []
+
+    outcomes = utils.sync(outcome_events, trials, \
+            direction=1, mkey=lambda x: x['time'])
+
+    assert len(trials) == len(outcomes)
+    for i in xrange(len(trials)):
+        trials[i]['outcome'] = outcomes[i].name
+
+    return trials

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-import stimuli
+import display
+import system
 
+# for backwards compatibility
+from display import to_stims
 
-def to_stims(events):
-    return stimuli.to_stims(events)
-
-__all__ = ['stimuli']
+__all__ = ['display', 'system', 'to_stims']
