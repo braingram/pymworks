@@ -13,6 +13,8 @@ from raw import LDOBinary
 
 
 def key_to_code(key, to_code):
+    if isinstance(key, (tuple, list)):
+        return [key_to_code(k, to_code) for k in key]
     if isinstance(key, str):
         return to_code(key)
     return key
