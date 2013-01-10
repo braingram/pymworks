@@ -20,7 +20,7 @@ class EventStream(Stream):
         self.host = host
         self.port = port
         self.timeout = timeout
-        self.safe = False
+        self.safe = True
         if autostart:
             self.start()
 
@@ -111,7 +111,7 @@ class Server(Stream):
         self.host = host
         self.port = port
         self.timeout = timeout
-        self.safe = False
+        self.safe = True
         if autostart:
             self.start()
 
