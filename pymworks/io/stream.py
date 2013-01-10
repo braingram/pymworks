@@ -99,7 +99,7 @@ class EventStream(Stream):
             return
 
 
-class EchoServer(Stream):
+class Server(Stream):
     def __init__(self, host, port=defaultport, autostart=True, timeout=None):
         Stream.__init__(self, autostart=False)
         self.host = host
@@ -112,6 +112,7 @@ class EchoServer(Stream):
     def start(self):
         if self._running:
             return
+        logging.debug("Server: listening for client write connnection")
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.settimeout(self.timeout)
@@ -121,22 +122,29 @@ class EchoServer(Stream):
             self.wconn, self.waddr = self.socket.accept()
             self.wconn.settimeout(self.timeout)
         except socket.error as E:
-            logging.error("EchoServer.start failed with: %s" % E)
+            logging.error("Server.start failed with: %s" % E)
             del self.socket
             return
 
+        logging.debug("Server: building marshaler")
+        self.wldo = LDOBinary.LDOBinaryMarshaler(self.wconn.makefile('wb'))
+        logging.debug("Server: init marshaler")
+        self.wldo.m_init()
+        logging.debug("Server: flushing")
+        self.wldo.flush()
+
+        logging.debug("Server: listening for client read connnection")
         try:
             self.rconn, self.raddr = self.socket.accept()
             self.rconn.settimeout(self.timeout)
         except socket.error as E:
             self.wconn.close()
-            del self.wconn, self.waddr, self.socket
+            del self.wconn, self.waddr, self.socket, self.wldo
             return
 
+        logging.debug("Server: building unmarshaler")
         self.rldo = LDOBinary.LDOBinaryUnmarshaler(self.rconn.makefile('rb'))
         self.rldo.read_stream_header = 1  # don't read the stream header
-        self.wldo = LDOBinary.LDOBinaryMarshaler(self.wconn.makefile('wb'))
-        self.wldo.m_init()
         Stream.start(self)
 
     def stop(self):
@@ -163,7 +171,7 @@ class EchoServer(Stream):
             e = Event(*self.rldo.load())
             if (self._codec is not None) and (e.code in self._codec):
                 e.name = self._codec[e.code]
-            print e
+            logging.debug(e)
             return e
         r, _, _ = select.select([self.rconn], [], [], self.timeout)
         if len(r):
@@ -173,7 +181,7 @@ class EchoServer(Stream):
 
     # overload methods that will not work (get_events...)
     def get_events(self, **kwargs):
-        raise NotImplementedError("EchoServer.get_events not possible")
+        raise NotImplementedError("Server.get_events not possible")
 
     def write_event(self, event, flush=True):
         self.require_running()
