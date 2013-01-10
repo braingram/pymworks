@@ -12,6 +12,8 @@ converting types between on-the-wire types and internal types.
 
 """
 
+import logging
+
 from ScarabMarshal import *
 from types import *
 import string
@@ -59,6 +61,8 @@ class LDOBinaryMarshaler(Marshaler):
             self.write(MAGIC)
             self.write(VERSION + self.encode_ber(MAJOR) + \
                     self.encode_ber(MINOR))
+            logging.debug("%s, m_init: Magic: %s, Version: %s.%s.%s" % \
+                    (self, MAGIC, VERSION, MAJOR, MINOR))
 
     def persistent_id(self, object):
         return None
@@ -183,12 +187,20 @@ class LDOBinaryUnmarshaler(Unmarshaler):
     def um_init(self):
         if not self.read_stream_header:
             self.read_stream_header = 1
-            if self.read(len(MAGIC)) == '':
+            m = self.read(len(MAGIC))
+            if m == '':
                 raise EOFError
-            if self.read(1) == '':
+            #if self.read(len(MAGIC)) == '':
+            #    raise EOFError
+            v = self.read(1)
+            #if self.read(1) == '':
+            #    raise EOFError
+            if v == '':
                 raise EOFError
-            self.decode_ber()
-            self.decode_ber()
+            major = self.decode_ber()
+            minor = self.decode_ber()
+            logging.debug("%s, um_init: Magic: %s, Version: %s.%s.%s" % \
+                    (self, m, v, major, minor))
 
     def _unmarshal(self):
         id = ""

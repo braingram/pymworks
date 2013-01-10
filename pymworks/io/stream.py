@@ -29,7 +29,7 @@ class EventStream(Stream):
             return
         try:
             self.rsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.rsocket.settimeout(self.timeout)
+            #self.rsocket.settimeout(self.timeout)
             self.rsocket.connect((self.host, self.port))
         except socket.error as E:
             logging.error("StreamReader.start failed with: %s" % E)
@@ -38,7 +38,7 @@ class EventStream(Stream):
             return
         try:
             self.wsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.wsocket.settimeout(self.timeout)
+            #self.wsocket.settimeout(self.timeout)
             self.wsocket.connect((self.host, self.port))
         except socket.error as E:
             logging.error("StreamReader.start failed with: %s" % E)
@@ -48,9 +48,15 @@ class EventStream(Stream):
             self.rsocket.close()
             del self.rsocket
             return
-        self.rldo = LDOBinary.LDOBinaryUnmarshaler(self.rsocket.makefile('rb'))
-        self.wldo = LDOBinary.LDOBinaryMarshaler(self.wsocket.makefile('wb'))
+        self.rldo = LDOBinary.LDOBinaryUnmarshaler( \
+                self.rsocket.makefile('rb', 0))
+        self.rldo.um_init()
+        logging.debug("Client: built unmarshaler %s" % self.rldo)
+        self.wldo = LDOBinary.LDOBinaryMarshaler( \
+                self.wsocket.makefile('wb', 0))
         self.wldo.written_stream_header = 1  # don't write the stream header
+        self.wldo.m_init()
+        logging.debug("Client: built marshaler %s" % self.wldo)
         Stream.start(self)
 
     def stop(self):
@@ -115,36 +121,41 @@ class Server(Stream):
         logging.debug("Server: listening for client write connnection")
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(self.timeout)
+            #self.socket.settimeout(self.timeout)
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.socket.bind((self.host, self.port))
             self.socket.listen(1)
             self.wconn, self.waddr = self.socket.accept()
-            self.wconn.settimeout(self.timeout)
+            #self.wconn.settimeout(self.timeout)
         except socket.error as E:
             logging.error("Server.start failed with: %s" % E)
             del self.socket
             return
 
         logging.debug("Server: building marshaler")
-        self.wldo = LDOBinary.LDOBinaryMarshaler(self.wconn.makefile('wb'))
-        logging.debug("Server: init marshaler")
+        self.wldo = LDOBinary.LDOBinaryMarshaler( \
+                self.wconn.makefile('wb', 0))
+        logging.debug("Server: init marshaler %s" % self.wldo)
         self.wldo.m_init()
         logging.debug("Server: flushing")
         self.wldo.flush()
+        logging.debug("Server: built marshaler: %s" % self.wldo)
 
         logging.debug("Server: listening for client read connnection")
         try:
             self.rconn, self.raddr = self.socket.accept()
-            self.rconn.settimeout(self.timeout)
+            #self.rconn.settimeout(self.timeout)
         except socket.error as E:
             self.wconn.close()
             del self.wconn, self.waddr, self.socket, self.wldo
             return
 
         logging.debug("Server: building unmarshaler")
-        self.rldo = LDOBinary.LDOBinaryUnmarshaler(self.rconn.makefile('rb'))
+        self.rldo = LDOBinary.LDOBinaryUnmarshaler( \
+                self.rconn.makefile('rb', 0))
+        logging.debug("Server: built unmarshaler: %s" % self.rldo)
         self.rldo.read_stream_header = 1  # don't read the stream header
+        self.rldo.um_init()
         Stream.start(self)
 
     def stop(self):
