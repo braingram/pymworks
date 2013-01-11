@@ -131,7 +131,8 @@ class LDOBinaryMarshaler(Marshaler):
         self.encode_opaque(repr(object))
 
     def m_str(self, object):
-        self.encode_opaque(object)
+        # the c scarab in mworks expects a null terminated string
+        self.encode_opaque(object + '\x00')
 
     def m_list(self, object):
         self.write(LIST)
