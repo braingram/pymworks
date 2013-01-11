@@ -127,4 +127,12 @@ def load_variables(filename, full_path=False, time=None):
 
 
 # TODO Responses? ln 304 - 449
+server_connected = system_event_macro('response', 'server_connected')
+server_disconnected = system_event_macro('response', 'disserver_connected')
+
+
+def experiment_loaded(result=0):
+    return system_event('response', 'experiment_state', dict(loaded=0))
+
+
 # TODO response parsing
