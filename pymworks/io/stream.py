@@ -151,6 +151,9 @@ class Server(Stream):
             return
 
         logging.debug("Server: building unmarshaler")
+        # strangly, the native server writes a stream header here
+        self.rconn.sendall(LDOBinary.MAGIC + LDOBinary.VERSION + \
+                chr(LDOBinary.MAJOR) + chr(LDOBinary.MINOR))
         self.rldo = LDOBinary.LDOBinaryUnmarshaler( \
                 self.rconn.makefile('rb', 0))
         logging.debug("Server: built unmarshaler: %s" % self.rldo)
