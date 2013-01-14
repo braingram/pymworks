@@ -10,6 +10,8 @@ See core/Core/InterfaceHooks/ServerSide/Products/
 from event import Event
 from utils import now
 
+import experimentpacker
+
 EVENT_TYPE = {'control': 1000, 'data': 1001, 'response': 1002}
 PAYLOAD_TYPE = {
         'experiment': 2000,
@@ -68,9 +70,15 @@ def protocol_selection(protocol_name, time=None):
     return system_event('control', 'protocol_selection', \
             protocol_name, time=time)
 
-# TODO sendExperiment
+
+# sendExperiment
 #   core/Core/InterfaceHooks/ClientSide/Products/Client.cpp ln 131-152
 #   core/Core/ExperimentDataLoading/ExperimentPackager.cpp
+def send_experiment(filename):
+    return system_event('control', 'experiment', \
+            experimentpacker.make_payload(filename))
+
+
 start_experiment = system_event_macro('control', 'start_experiment')
 stop_experiment = system_event_macro('control', 'stop_experiment')
 pause_experiment = system_event_macro('control', 'pause_experiment')
@@ -94,7 +102,7 @@ def datafile_close(filename=None, time=None):
 
 
 def close_experiment(experiment_name, time=None):
-    return system_event('control', 'experiment_close', \
+    return system_event('control', 'close_experiment', \
             experiment_name, time=time)
 
 
