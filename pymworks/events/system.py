@@ -87,17 +87,17 @@ request_variables = system_event_macro('control', 'request_variables')
 # TODO setEventForwarding : ln 202-218
 
 
-def datafile_open(filename, overwrite=False, time=None):
+def open_datafile(filename, overwrite=False, time=None):
     options = 1000 if overwrite else 1001
-    return system_event('control', 'datafile_open', \
+    return system_event('control', 'open_datafile', \
             dict(file=filename, options=options), time=time)
 
 
-def datafile_close(filename=None, time=None):
+def close_datafile(filename=None, time=None):
     # FIXME see ln 191 in StandardSystemEventHandler.cpp
     # in core/Core/InterfaceHooks/ServerSide/Products/
     # filename does not appear to be used
-    return system_event('control', 'datafile_close', \
+    return system_event('control', 'close_datafile', \
             filename, time=time)
 
 
@@ -117,9 +117,11 @@ def save_variables(filename, overwrite=False, full_path=False, time=None):
     full_path : bool
         is the filename a full_path (or relative to ...)
     """
-    return system_event('control', 'save_variables', \
-            dict(file=filename, overwrite=overwrite, \
-            full_path=full_path), time=time)
+    overwrite = 1 if overwrite else 0
+    full_path = 1 if full_path else 0
+    p = dict(file=filename, overwrite=overwrite)
+    p['full path'] = full_path
+    return system_event('control', 'save_variables', p, time=time)
 
 
 def load_variables(filename, full_path=False, time=None):
@@ -130,8 +132,10 @@ def load_variables(filename, full_path=False, time=None):
     full_path : bool
         is the filename a full_path (or relative to ...)
     """
-    return system_event('control', 'load_variables', \
-            dict(file=filename, full_path=full_path), time=time)
+    full_path = 1 if full_path else 0
+    p = dict(file=filename)
+    p['full path'] = full_path
+    return system_event('control', 'load_variables', p, time=time)
 
 
 # TODO Responses? ln 304 - 449

@@ -278,3 +278,8 @@ class Client(BufferedEventStream):
             key = self.to_code(key)
         time = self.now() if time is None else time
         return Event(key, time, value, name=self.to_name(key))
+
+    # TODO add system events
+    # TODO add system event response parsing
+    # TODO add system state
+    # TODO add server start/stop (using ssh keys)
