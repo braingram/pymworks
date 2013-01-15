@@ -38,6 +38,7 @@ var MWClient = function(selector, cfg) {
     
     this.start_experiment = function() {
         console.log("start_experiment");
+        // issue ajax request: ajax?client=host&function=start_experiment
         $(".toolbar button.control", this.node).attr("title", "Stop")
             .button("option", {
                 label: "Stop",

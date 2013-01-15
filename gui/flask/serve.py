@@ -59,6 +59,7 @@ def make_app(name):
     def ajax():
         r = 'Error'
         try:
+            print flask.request.args
             q = dict([(k, v) for k, v in flask.request.args.iteritems()])
             for k in q:
                 if isinstance(q[k], unicode):
