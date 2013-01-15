@@ -16,6 +16,7 @@ from ..events import system
 from raw import LDOBinary
 
 defaultport = 19989
+defaulttimeout = 0.1
 
 
 def read_event_from_ldo(ldo, codec):
@@ -27,7 +28,8 @@ def read_event_from_ldo(ldo, codec):
 
 
 class EventStream(Stream):
-    def __init__(self, host, port=defaultport, autostart=True, timeout=None):
+    def __init__(self, host, port=defaultport, autostart=True, \
+            timeout=defaulttimeout):
         Stream.__init__(self, autostart=False)
         self.host = host
         self.port = port
@@ -115,7 +117,8 @@ class EventStream(Stream):
 
 
 class Server(Stream):
-    def __init__(self, host, port=defaultport, autostart=True, timeout=None):
+    def __init__(self, host, port=defaultport, autostart=True, \
+            timeout=defaulttimeout):
         Stream.__init__(self, autostart=False)
         self.host = host
         self.port = port
@@ -217,8 +220,8 @@ class Server(Stream):
 
 
 class BufferedEventStream(EventStream):
-    def __init__(self, host, port=defaultport, autostart=True, timeout=None, \
-            bufferlength=1):
+    def __init__(self, host, port=defaultport, autostart=True, \
+            timeout=defaulttimeout, bufferlength=1):
         EventStream.__init__(self, host, port=port, \
                 autostart=False, timeout=timeout)
         self.bufferlength = bufferlength
@@ -267,8 +270,9 @@ class BufferedEventStream(EventStream):
 
 
 class Client(BufferedEventStream):
-    def __init__(self, host, port=defaultport, autostart=True, timeout=None, \
-            bufferlength=1, user=None, startserver=True):
+    def __init__(self, host, port=defaultport, autostart=True, \
+            timeout=defaulttimeout, bufferlength=100, user=None, \
+            startserver=True):
         BufferedEventStream.__init__(self, host, port=port, autostart=False, \
                 bufferlength=bufferlength, timeout=timeout)
         self.tdelay = 0
