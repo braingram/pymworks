@@ -2,13 +2,17 @@
 
 import collections
 import logging
+import getpass
 import select
 import socket
+import subprocess
+import sys
 import time as pytime
 
 from base import Stream
 from datafile import key_to_code, make_tests
 from ..events.event import Event
+from ..events import system
 from raw import LDOBinary
 
 defaultport = 19989
@@ -267,6 +271,8 @@ class Client(BufferedEventStream):
         BufferedEventStream.__init__(self, host, port=port, autostart=False, \
                 bufferlength=bufferlength, timeout=timeout)
         self.tdelay = 0
+        self.state = {}
+        self.register_callback(1, self.update_state)
         if autostart:
             self.start()
 
@@ -279,7 +285,60 @@ class Client(BufferedEventStream):
         time = self.now() if time is None else time
         return Event(key, time, value, name=self.to_name(key))
 
-    # TODO add system events
-    # TODO add system event response parsing
-    # TODO add system state
-    # TODO add server start/stop (using ssh keys)
+    # experiment : load(fn), start, stop, pause
+    def load_experiment(self, filename):
+        self.write_event(system.load_experiment(filename))
+
+    def start_experiment(self):
+        self.write_event(system.start_experiment())
+
+    def stop_experiment(self):
+        self.write_event(system.stop_experiment())
+
+    def pause_experiment(self):
+        self.write_event(system.pause_experiment())
+
+    # datafile : open(fn, overwrite=False), close(fn)
+    def open_datafile(self, filename, overwrite=False):
+        self.write_event(system.open_datafile(filename, overwrite))
+
+    def close_datafile(self):
+        self.write_event(system.close_datafile())
+
+    # variables : save(fn, overwrite=False), load(fn)
+    def load_variables(self, filename):
+        self.write_event(system.load_variables(filename))
+
+    def save_variables(self, filename, overwrite=False):
+        self.write_event(system.save_variables(filename, overwrite))
+
+    # protocol : select_protocol
+    def select_protocol(self, protocol):
+        self.write_event(system.protocol_selection(protocol))
+
+    # ... : request_codec, request_variables
+    def update_state(self, event):
+        try:
+            self.state = system.parse_state(event, self.state)
+        except Exception as E:
+            system.parse_warning('Failed to parse event with %s' % E, event)
+
+    def start_server(self):
+        if self.host in ('127.0.0.1', 'localhost'):
+            cmd = '/usr/bin/open /Applications/MWServer.app'
+        else:
+            # -f puts ssh in background
+            # BatchMode=yes disable password prompt
+            cmd = 'ssh -f -o BatchMode=yes -l %s %s /usr/bin/open ' \
+                    '/Applications/MWServer.app' % \
+                    (getpass.getuser(), self.host)
+        logging.debug("Launching: %s" % cmd)
+        if logging.root.level <= logging.DEBUG:
+            kwargs = dict(stderr=sys.stderr, stdout=sys.stdout)
+        else:
+            kwargs = {}
+        ret = subprocess.call(cmd.split(), **kwargs)
+        if ret != 0:
+            logging.warning("Failed to start server, return code: %s" % ret)
+            return False
+        return True
