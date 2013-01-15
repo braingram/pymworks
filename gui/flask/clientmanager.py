@@ -91,19 +91,31 @@ class ClientManager(object):
         f = query.pop('function', 'STATE')
         a = query.pop('args', [])
         kw = query.pop('kwargs', {})
+        isattr = query.pop('isattr', False)
+        if not isinstance(f, str):
+            return fail('function must be a str: %s' % f)
 
         try:
             o = self if c is None else self.clients[c]
         except KeyError:
-            return fail("Unknown client: %s" % c)
+            return fail('Unknown client: %s' % c)
 
-        if not (hasattr(o, f)):
-            return fail("Unknown function %s" % f)
-        try:
-            r = getattr(o, f)(*a, **kw)
-            return success(r)
-        except Exception as E:
-            return fail("function[%s.%s] failed=%s" % (o, f, E))
+        if isattr:  # this is an attribute fetch NOT a function
+            if not (hasattr(o, f)):
+                return fail('Unknown attribute %s' % f)
+            try:
+                r = getattr(o, f)
+                return success(r)
+            except Exception as E:
+                return fail('getattr(%s, %s) failed=%s' % (o, f, E))
+        else:  # this is a function call
+            if not (hasattr(o, f)):
+                return fail('Unknown function %s' % f)
+            try:
+                r = getattr(o, f)(*a, **kw)
+                return success(r)
+            except Exception as E:
+                return fail('function[%s.%s] failed=%s' % (o, f, E))
 
 
 if __name__ == '__main__':
