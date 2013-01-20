@@ -34,7 +34,7 @@ def make_time_test(time_range, to_code):
     if time_range is None:
         return lambda e: True
     else:
-        if isinstance(time_range, (tuple, list)):
+        if not isinstance(time_range, (tuple, list)):
             raise ValueError("time_range must be tuple or list: %s" \
                     % time_range)
         if len(time_range) != 2:

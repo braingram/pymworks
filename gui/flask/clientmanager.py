@@ -44,7 +44,7 @@ import pymworks.io.stream
 
 
 def fail(s):
-    return (False, "ERROR: %s" % s)
+    return (False, s)
 
 
 def success(r=None):
@@ -71,46 +71,28 @@ class ClientManager(object):
             raise ValueError('Unknown host[%s]' % host)
         del self.clients[host]
 
-    # read, write, connect, disconnect, reconnect
-    def process_query(self, **query):
-        """
-        query = dict
-        query['client'] = client address
-        query['function'] = action to perform
-        query['args'] = arguments
-        query['kwargs'] = kwargs
-
-        Returns
-        ------
-        outcome : bool
-            If query was successful
-        result : varies
-            Result of query
-        """
-        c = query.pop('client', None)
-        f = query.pop('function', 'STATE')
-        a = query.pop('args', [])
-        kw = query.pop('kwargs', {})
-
+    def client_function(self, client, func, *args, **kwargs):
+        if client not in self.clients:
+            raise ValueError('client %s not found' % client)
+        c = self.clients[client]
+        if not hasattr(c, func):
+            raise AttributeError('client does not have function %s' % func)
+        f = getattr(c, func)
         try:
-            o = self if c is None else self.clients[c]
-        except KeyError:
-            return fail("Unknown client: %s" % c)
-
-        if not (hasattr(o, f)):
-            return fail("Unknown function %s" % f)
-        try:
-            r = getattr(o, f)(*a, **kw)
-            return success(r)
+            return f(*args, **kwargs)
         except Exception as E:
-            return fail("function[%s.%s] failed=%s" % (o, f, E))
+            raise Exception("function %s failed with %s" % (func, E))
+
+    def client_state(self, client):
+        return self.client_function(self, client,
+                '__getattribute__', ['state', ])
 
 
 if __name__ == '__main__':
     actions = [
-            dict(action='connect', host='fake'),
-            dict(action='listen', host='fake', name='a'),
-            ]
+        dict(action='connect', host='fake'),
+        dict(action='listen', host='fake', name='a'),
+    ]
     # connect to host
     # listen for variable changes
     # read

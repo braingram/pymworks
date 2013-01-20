@@ -165,6 +165,9 @@ def parse_protocol_payload(payload, state):
     for k in ('current protocol', 'protocols', 'experiment name'):
         if k in payload:
             state[k] = payload[k]
+        else:
+            if k in state:
+                del state[k]
     return state
 
 
@@ -173,6 +176,9 @@ def parse_experiment_state_payload(payload, state):
             'paused', 'running', 'saved variables'):
         if k in payload:
             state[k] = payload[k]
+        else:
+            if k in state:
+                del state[k]
     return state
 
 

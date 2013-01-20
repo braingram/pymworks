@@ -16,10 +16,20 @@ from ..events import system
 from raw import LDOBinary
 
 defaultport = 19989
+defaulttimeout = 0.1
+
+
+def read_event_from_ldo(ldo, codec):
+    e = Event(*ldo.load())
+    if (codec is not None) and (e.code in codec):
+        e.name = codec[e.code]
+    logging.debug(e)
+    return e
 
 
 class EventStream(Stream):
-    def __init__(self, host, port=defaultport, autostart=True, timeout=None):
+    def __init__(self, host, port=defaultport, autostart=True, \
+            timeout=defaulttimeout):
         Stream.__init__(self, autostart=False)
         self.host = host
         self.port = port
@@ -80,13 +90,10 @@ class EventStream(Stream):
         safe = self.safe if safe is None else safe
         self.require_running()
         if safe is False:
-            e = Event(*self.rldo.load())
-            if (self._codec is not None) and (e.code in self._codec):
-                e.name = self._codec[e.code]
-            return e
+            return read_event_from_ldo(self.rldo, self._codec)
         r, _, _ = select.select([self.rsocket], [], [], self.timeout)
         if len(r):
-            return self.read_event(safe=False)
+            return read_event_from_ldo(self.rldo, self._codec)
         else:
             return None
 
@@ -110,7 +117,8 @@ class EventStream(Stream):
 
 
 class Server(Stream):
-    def __init__(self, host, port=defaultport, autostart=True, timeout=None):
+    def __init__(self, host, port=defaultport, autostart=True, \
+            timeout=defaulttimeout):
         Stream.__init__(self, autostart=False)
         self.host = host
         self.port = port
@@ -186,14 +194,10 @@ class Server(Stream):
         safe = self.safe if safe is None else safe
         self.require_running()
         if safe is False:
-            e = Event(*self.rldo.load())
-            if (self._codec is not None) and (e.code in self._codec):
-                e.name = self._codec[e.code]
-            logging.debug(e)
-            return e
+            return read_event_from_ldo(self.rldo, self._codec)
         r, _, _ = select.select([self.rconn], [], [], self.timeout)
         if len(r):
-            return self.read_event(safe=False)
+            return read_event_from_ldo(self.rldo, self._codec)
         else:
             return None
 
@@ -216,8 +220,8 @@ class Server(Stream):
 
 
 class BufferedEventStream(EventStream):
-    def __init__(self, host, port=defaultport, autostart=True, timeout=None, \
-            bufferlength=1):
+    def __init__(self, host, port=defaultport, autostart=True, \
+            timeout=defaulttimeout, bufferlength=1):
         EventStream.__init__(self, host, port=port, \
                 autostart=False, timeout=timeout)
         self.bufferlength = bufferlength
@@ -266,13 +270,16 @@ class BufferedEventStream(EventStream):
 
 
 class Client(BufferedEventStream):
-    def __init__(self, host, port=defaultport, autostart=True, timeout=None, \
-            bufferlength=1):
+    def __init__(self, host, port=defaultport, autostart=True, \
+            timeout=defaulttimeout, bufferlength=100, user=None, \
+            startserver=True):
         BufferedEventStream.__init__(self, host, port=port, autostart=False, \
                 bufferlength=bufferlength, timeout=timeout)
         self.tdelay = 0
         self.state = {}
         self.register_callback(1, self.update_state)
+        self.user = getpass.getuser() if user is None else user
+        self.startserver = startserver
         if autostart:
             self.start()
 
@@ -329,16 +336,37 @@ class Client(BufferedEventStream):
         else:
             # -f puts ssh in background
             # BatchMode=yes disable password prompt
-            cmd = 'ssh -f -o BatchMode=yes -l %s %s /usr/bin/open ' \
+            cmd = 'ssh -o BatchMode=yes -l %s %s /usr/bin/open ' \
                     '/Applications/MWServer.app' % \
-                    (getpass.getuser(), self.host)
+                    (self.user, self.host)
         logging.debug("Launching: %s" % cmd)
         if logging.root.level <= logging.DEBUG:
             kwargs = dict(stderr=sys.stderr, stdout=sys.stdout)
         else:
             kwargs = {}
         ret = subprocess.call(cmd.split(), **kwargs)
+        # TODO wait a bit ??
+        pytime.sleep(1)
         if ret != 0:
-            logging.warning("Failed to start server, return code: %s" % ret)
+            logging.warning("Failed to start server %s@%s, return code: %s" % \
+                    (self.user, self.host, ret))
             return False
         return True
+
+    def start(self):
+        if self._running:
+            return
+        if self.startserver:
+            try:
+                result = self.start_server()
+                error = None
+            except Exception as E:
+                result = False
+                error = E
+            if not result:
+                logging.warning("Failed to start server at %s@%s: %s" % \
+                        (self.user, self.host, error))
+            else:
+                logging.debug("Started server at %s@%s" % \
+                        (self.user, self.host))
+        BufferedEventStream.start(self)
