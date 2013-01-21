@@ -30,11 +30,11 @@ vtypes = {\
 
 
 class ClientManager(object):
-    def __init__(self, client=None, host='127.0.0.1', port=19989):
+    def __init__(self, client=None, host='127.0.0.1', port=19989, timeout=None):
         if (client is None) and (host.lower() == 'fake'):
-            client = pymworks.stream.FakeClient(host=host, port=port)
+            client = pymworks.stream.FakeClient(host=host, port=port, timeout=timeout)
         if client is None:
-            client = pymworks.stream.CallbackCodecClient(host=host, port=port)
+            client = pymworks.stream.CallbackCodecClient(host=host, port=port, timeout=timeout)
         self.client = client
 
         # construct stuff for the client to display/connect
