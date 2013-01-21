@@ -2,15 +2,15 @@
 
 
 def valuemax(events):
-    return max(events, lambda e: e.value)
+    return max(events, key=lambda e: e.value)
 
 
 def valuemin(events):
-    return min(events, lambda e: e.value)
+    return min(events, key=lambda e: e.value)
 
 
 def valuerange(events):
-    return valuemax(events) - valuemin(events)
+    return valuemax(events).value - valuemin(events).value
 
 
 def time_in_state(events, test=lambda e: e.value < 500.):
