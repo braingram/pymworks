@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 
 
-def maxvalue(events):
+def valuemax(events):
     return max(events, lambda e: e.value)
 
 
-def minvalue(events):
+def valuemin(events):
     return min(events, lambda e: e.value)
 
 
-def range(events):
-    return maxvalue(events) - minvalue(events)
+def valuerange(events):
+    return valuemax(events) - valuemin(events)
 
 
 def time_in_state(events, test=lambda e: e.value < 500.):
