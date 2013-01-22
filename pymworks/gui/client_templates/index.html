@@ -2,10 +2,23 @@
 <html lang="us">
 <head>
 	<meta charset="utf-8">
-	<title>MWClient</title>
-    <link href="css/smoothness/jquery-ui-1.9.2.custom.css" rel="stylesheet">
-    <link href="css/jquery.pnotify.default.css" rel="stylesheet">
-    <link href="css/jquery.pnotify.default.icons.css" rel="stylesheet">
+    <title>MWClient</title>
+    <script src="{{ url_for('ajaxify.static', filename='js/jquery.js') }}"></script>
+    <script src="{{ url_for('ajaxify.static', filename='js/jquery.json.js') }}"></script>
+    <script src="{{ url_for('ajaxify.static', filename='js/ajaxify.js') }}"></script>
+    <script src="{{ url_for('filetree.static',  filename='js/jqueryFileTree.js') }}"></script>
+    <link href="{{ url_for('filetree.static', filename='css/jqueryFileTree.js') }}" ref="stylesheet">
+
+    <script src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery.pnotify.min.js') }}"></script>
+    <script>
+        $.pnotify.defaults.styling = "jqueryui";
+    </script>
+
+    <link href="{{ url_for('static', filename='css/smoothness/jquery-ui.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/jquery.pnotify.default.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/jquery.pnotify.default.icons.css') }}" rel="stylesheet">
+
     <style>
         body{
             font: 62.5% "Trebuchet MS", sans-serif;
@@ -15,18 +28,9 @@
         .dialog form fieldset input { display: block; }
         .dialog form fieldset input label { display: block; }
     </style>
-	<script src="js/jquery.js"></script>
-    <script src="js/jquery-ui.js"></script>
-    <script src="js/jquery.pnotify.min.js"></script>
+
+    <script src="{{ url_for('static', filename='js/mwclient.js') }}"></script>
     <script>
-        $.pnotify.defaults.styling = "jqueryui";
-    </script>
-    <script src="js/mwclient.js"></script>
-    <script>
-        $(function () {
-            c0 = new MWClient('#client0');
-            c1 = new MWClient('#client1');
-        });
     </script>
 </head>
 <body>
@@ -55,16 +59,6 @@
             </div>
         </div>
     </div>
-    <div id="client1">
-        <div class="toolbar ui-widget-header ui-corner-all">
-            <button class="control">Control</button>
-            <button class="connect">Connect</button>
-            <button class="experiment">Experiment</button>
-            <button class="variableset">Variable Set</button>
-            <button class="stream">Stream</button>
-        </div>
-        <div class="canvas">
-        </div>
     </div>
 
     <!-- dialogs -->
