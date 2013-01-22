@@ -40,15 +40,7 @@ Example:
     4) receive STATE(host)
 """
 
-import pymworks.io.stream
-
-
-def fail(s):
-    return (False, s)
-
-
-def success(r=None):
-    return (True, r)
+from ..io import stream
 
 
 class ClientManager(object):
@@ -61,7 +53,7 @@ class ClientManager(object):
 
     def connect(self, host='fake', port=19989, **kwargs):
         try:
-            c = pymworks.io.stream.Client(host, port, **kwargs)
+            c = stream.Client(host, port, **kwargs)
             self.clients[c.host] = c
         except Exception as E:
             raise E

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="us">
+<head>
+	<meta charset="utf-8">
+	<title>AJAX test</title>
+    <script src="{{url_for('cm.static', filename='js/jquery-1.8.3.min.js')}}"></script>
+    <script src="{{url_for('cm.static', filename='js/jquery.json-2.4.min.js')}}"></script>
+    <script type="text/javascript">
+        $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+        $CM_URL = {{ url_for('cm.ajax') }};
+        console.log($CM_URL);
+    </script>
+    <script type="text/javascript">
+        var datum = {};
+        function argtest(a, b, c, d) {
+            a = a === undefined ? '' : a; 
+            console.log('a ' + a);
+            console.log('b ' + b);
+            console.log('c ' + c);
+            console.log('d ' + d);
+        };
+        function send_request(url, func, attr, args, kwargs, callback) {
+            if (callback === undefined) {
+                throw "Callback was undefined";
+            };
+            try {
+                func = func === undefined ? '' : func;
+                attr = attr === undefined ? '' : attr;
+                args = args === undefined ? '[]' : args;
+                kwargs = kwargs === undefined ? '{}' : kwargs;
+                if (url === undefined) {
+                    throw 'url was undefined';
+                };
+                if ((func != '') & (attr != '')) {
+                    throw 'either func[' + func + '] and attr[' + attr + '] must be empty';
+                };
+                if ((func == '') & (attr == '')) {
+                    throw 'neither func nor attr was provided';
+                };
+                // test if args and kwargs are valid json
+                args = $.parseJSON(args);
+                kwargs = $.parseJSON(kwargs);
+                if (func == '') {
+                    data = {
+                        attr: attr,
+                    };
+                } else {
+                    data = {
+                        func: func,
+                        args: $.toJSON(args),
+                        kwargs: $.toJSON(kwargs),
+                    };
+                };
+                $.getJSON($SCRIPT_ROOT + url, data, function(data) {
+                        console.log(data);
+                        datum = data;
+                        callback(data.status, data.result, data.error);
+                        });
+            } catch (error) {
+                callback(2, '', 'JS: ' + error.message);
+            };
+        };
+        function parse_request() {
+            send_request(
+                    $("input#url").val(),
+                    $("input#function").val(),
+                    $("input#attribute").val(),
+                    $("input#args").val(),
+                    $("input#kwargs").val(),
+                    function(s, r, e) {
+                        console.log('status: ' + s);
+                        console.log('result: ' + r);
+                        console.log('error: ' + e);
+                        $("#status").text(s);
+                        $("#result").text(r);
+                        $("#error").text(e);
+                        }
+                    );
+        };
+        $(function() {
+            $("a#send").bind("click", function() {
+                    parse_request();
+                    return false; // to stop default
+                    });
+            $(document).bind("keypress", function(e) {
+                if (e.keyCode == 13) {
+                    parse_request();
+                    return false;
+                } else {
+                    return true;
+                };
+                });
+        });
+    </script>
+</head>
+<body>
+    <p>
+    <label for="url">AjaxURL</label>
+    <input type="text" id="url" value="{{ url_for('cm.ajax') }}" />
+    <label for="function">function</label>
+    <input type="text" id="function" value='f' />
+    <label for="attribute">attribute</label>
+    <input type="text" id="attribute" value='' />
+    <label for="args">args</label>
+    <input type="text" id="args" value='[1, 2]' />
+    <label for="kwargs">kwargs</label>
+    <input type="text" id="kwargs" value='{"a": 1, "b": 2}' />
+    </p>
+    <ul>
+        <li>Status: <span id="status">?</span></li>
+        <li>Result: <span id="result">?</span></li>
+        <li>Error : <span id="error">?</span></li>
+    </ul>
+    <a href="#" id="send">Send</a>
+</body>
+</html>
