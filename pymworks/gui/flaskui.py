@@ -55,6 +55,16 @@ def make_client_app(client, app=None):
 
 
 if __name__ == '__main__':
+    host = 'localhost'
+    port = 19989
+    try:
+        import qarg
+        ns = qarg.get('H(host)=localhost,P(port)[int]=19989')
+        host = ns.host
+        port = ns.port
+    except ImportError:
+        pass
     import pymworks
-    c = pymworks.io.stream.Client()
-    app = make_client_app(
+    c = pymworks.io.stream.Client(host, port, autostart=False)
+    app = make_client_app(c)
+    app.run()
