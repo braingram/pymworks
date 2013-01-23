@@ -59,7 +59,7 @@ if __name__ == '__main__':
     port = 19989
     try:
         import qarg
-        ns = qarg.get('H(host)=localhost,P(port)[int]=19989')
+        ns = qarg.get('H(host=localhost,P(port[int=19989')
         host = ns.host
         port = ns.port
     except ImportError:
