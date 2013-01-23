@@ -65,6 +65,8 @@ if __name__ == '__main__':
     except ImportError:
         pass
     import pymworks
+    print "Making client for: %s:%s" % (host, port)
     c = pymworks.io.stream.Client(host, port, autostart=False)
     app = make_client_app(c)
+    print "Serving on default: 127.0.0.1:5000"
     app.run()
