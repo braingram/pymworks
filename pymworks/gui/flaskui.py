@@ -1,35 +1,29 @@
 #!/usr/bin/env python
 """
-Ajaxify a clientmanager
-find the template & static dirs
-serve up templates
-
-Request format:
-    {
-        "func" : function (string)
-        "args" : args (json encoded list)
-        "kwargs": kwargs (json encoded object/dict)
-        "attr" : attribute (string)
-    }
-
-if a request has an attr, check that it does NOT have a func
-if a request has a func, check that it does NOT have an attr
-
-Return format:
-    {
-        "status" : 0 (no error, 1 python error, 2 js error)
-        "error" : error message (string)
-        "result" : variable (json encoded something)
-    }
 """
 
 
+import json
 import os
 
 import flask
 
 import flask_filetree
 import flask_ajaxify
+
+#TODO fix me later
+print "Fix this line (flaskui.py:16) ........"
+import pymworks
+
+
+class EventEncoder(json.JSONEncoder):
+    """
+    Overload jso
+    """
+    def default(self, obj):
+        if isinstance(obj, pymworks.Event):
+            return dict(obj)
+        return json.JSONEncoder.default(self, obj)
 
 
 def abs_path(cwd, fn):
@@ -45,7 +39,8 @@ def make_client_app(client, app=None):
     flask_filetree.make_blueprint(app=app, register=True)
 
     # TODO make events json encodable
-    flask_ajaxify.make_blueprint(client, app=app, register=True)
+    flask_ajaxify.make_blueprint(client, app=app, register=True,
+            json_dumps_kwargs=dict(cls=EventEncoder))
 
     @app.route('/')
     def default():
