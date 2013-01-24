@@ -1,4 +1,6 @@
 var MWClient = function(selector, cfg) {
+    this.DEBUG = true;
+
     this.node = $(selector);
 
     this.host = "";
@@ -11,6 +13,36 @@ var MWClient = function(selector, cfg) {
 
     //console.log(this);
     var instance = this;
+
+    if (this.DEBUG) {
+        this.debug = function(message, level) {
+            $.pnotify({
+                title: message,
+            });
+        };
+    } else {
+        this.debug = function(message, level) {
+            if (level == 0) {
+                $.pnotify({
+                    title: message,
+                });
+            };
+        };
+    };
+
+    this.notify = function(message, status, result, error) {
+        o = {title: message};
+
+        if (status == 0) {
+            o.type = 'success';
+            o.text = 'result: ' + result;
+        } else {
+            o.type = 'error';
+            o.text = 'error: ' + error + ' result: ' + result;
+        };
+
+        $.pnotify(o);
+    };
 
     this.toolbar_text = function(label, text) {
         $(".toolbar button." + label, this.node)
@@ -38,7 +70,13 @@ var MWClient = function(selector, cfg) {
     
     this.start_experiment = function() {
         console.log("start_experiment");
+        Ajaxify.send({
+            func: "start_experiment",
+            callback: function (s, r, e) {
+                this.notify("start_experiment", s, r, e);
+            }});
         // issue ajax request: ajax?client=host&function=start_experiment
+        /*
         $(".toolbar button.control", this.node).attr("title", "Stop")
             .button("option", {
                 label: "Stop",
@@ -46,6 +84,7 @@ var MWClient = function(selector, cfg) {
                     primary: "ui-icon-stop"
                 }
             });
+        */
         this.running = true;
     };
 
