@@ -14,6 +14,7 @@
     <script>
         $.pnotify.defaults.styling = "jqueryui";
     </script>
+    <script src="{{ url_for('static', filename='js/knockout.js') }}"></script>
 
     <link href="{{ url_for('static', filename='css/smoothness/jquery-ui.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/jquery.pnotify.default.css') }}" rel="stylesheet">
@@ -31,46 +32,43 @@
 
     <script src="{{ url_for('static', filename='js/mwclient.js') }}"></script>
     <script>
+        $(document).ready(function () {
+            MWClient.setup_toolbar();
+            ko.applyBindings(MWClient);
+        });
     </script>
 </head>
 <body>
     <!-- client : make this a template -->
-    <div id="client0">
-        <div class="toolbar ui-widget-header ui-corner-all">
-            <button class="control">Control</button>
-            <button class="connect">Connect</button>
-            <button class="experiment">Experiment</button>
-            <button class="variableset">Variable Set</button>
-            <button class="stream">Stream</button>
-        </div>
-        <div class="canvas">
-            <div class="flags">
-                Flags
-                <input type="checkbox" id="punish_licking"></input>
-                <label for="punish_licking">punish_licking</label>
-                <input type="checkbox" id="always_reward"></input>
-                <label for="always_reward">always_reward</label>
-            </div>
-            <div class="graphs">
-                Graphs
-            </div>
-            <div class="controls">
-                Controls
-            </div>
-        </div>
+    <div class="toolbar ui-widget-header ui-corner-all">
+        <button class="control">Control</button>
+        <button class="connect">Connect</button>
+        <button class="experiment">Experiment</button>
+        <button class="variableset">Variable Set</button>
+        <button class="stream">Stream</button>
     </div>
+    <div class="canvas">
+        <div class="flags">
+            Flags
+            <input type="checkbox" id="punish_licking"></input>
+            <label for="punish_licking">punish_licking</label>
+            <input type="checkbox" id="always_reward"></input>
+            <label for="always_reward">always_reward</label>
+        </div>
+        <div class="graphs">
+            Graphs
+        </div>
+        <div class="controls">
+            Controls
+        </div>
     </div>
 
     <!-- dialogs -->
     <div id="connect_dialog" class="dialog" title="Connect to a MWServer">
-        <form>
-            <fieldset>
-                <label for="host">Host</label>
-                <input type="text" name="host" class="ui-widget-content"></input>
-                <label for="port">Port</label>
-                <input type="number" name="port" value="19989"></input>
-            </fieldset>
-        </form>
+        <p>Host <input data-bind="value: host" /></p>
+        <p>Port <input data-bind="value: port" /></p>
+        <p>User <input data-bind="value: user" /></p>
+        <button data-bind="click: connect">Connect</button>
     </div>
     <div id="experiment_dialog" class="dialog" title="Load an experiment">
         <form>

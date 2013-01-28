@@ -1,35 +1,60 @@
-var MWClient = function(selector, cfg) {
-    this.DEBUG = true;
+var MWClient = function(selector, cfg, debug) {
+    this.host = ko.observable("");
+    this.port = ko.observable(19989);
+    this.user = ko.observable("");
 
-    this.node = $(selector);
+    this.experiment = ko.observable("");
 
-    this.host = "";
-    this.port = 19989;
-    this.experiment = "";
-    this.variableset = "";
-    this.stream = "";
-    this.protocol = "";
-    this.running = false;
+    this.variables = ko.observable("");
+    this.variables_overwrite = ko.observable(false);
 
-    //console.log(this);
+    this.datafile = ko.observable("");
+    this.datafile_overwrite = ko.observable(false);
 
-    if (this.DEBUG) {
-        this.debug = function(message, level) {
+    this.protocol = ko.observable("");
+    this.protocols = ko.observableArray();
+
+    this.connected = ko.observable(false);  // client connected to server
+
+    this.running = ko.observable(false);  // experiment running
+    this.paused = ko.observable(false);
+    this.loaded = ko.observable(false);
+
+    this.vars = {};
+
+    this.max_time = null;
+
+    if (debug === 'console') {
+        this.debug = console.log;
+    } else if (debug === 'notify') {
+        this.debug = function(message) {
             $.pnotify({
                 title: message,
             });
         };
     } else {
-        this.debug = function(message, level) {
-            if (level == 0) {
-                $.pnotify({
-                    title: message,
-                });
-            };
+        this.debug = function(message) {
         };
     };
 
-    this.notify = function(message, status, result, error) {
+    // levels
+    // 0 : critical
+    // 1 : error
+    // 2 : warning
+    // 3 : info
+    // 4 : debug
+    this.notify_threshold = ko.observable(5);
+    this.notify_default_level = ko.observable(4);
+
+    this.notify = function(message, status, result, error, level) {
+        if (level === undefined) {
+            level = this.notify_default_level();
+        };
+
+        if (level > this.notify_threshold) {
+            return;
+        };
+
         o = {title: message};
 
         if (status == 0) {
@@ -43,6 +68,172 @@ var MWClient = function(selector, cfg) {
         $.pnotify(o);
     };
 
+    this.ajnofiy = function(message, level) {
+        return function (status, result, error) {
+            this.notify(message, status, result, error, level);
+        };
+    };
+
+    this.connect = function() {
+        this.debug("Connecting...");
+        // use this.host() this.port() this.user()
+        // to connect to the server
+    };
+
+    this.disconnect = function() {
+        this.debug("Disconnecting...");
+    };
+
+    this.load_experiment = function() {
+        Ajaxify.send({
+            func: 'load_experiment',
+            args: [this.experiment()],
+            callback: this.ajnotify('load_experiment'),
+        });
+    };
+
+    this.start_experiment = function() {
+        Ajaxify.send({
+            func: 'start_experiment',
+            callback: this.ajnotify('start_experiment'),
+        });
+    };
+
+    this.stop_experiment = function() {
+        Ajaxify.send({
+            func: 'stop_experiment',
+            callback: this.ajnotify('stop_experiment'),
+        });
+    };
+
+    this.start_experiment = function() {
+        Ajaxify.send({
+            func: 'pause_experiment',
+            callback: this.ajnotify('pause_experiment'),
+        });
+    };
+
+    this.open_datafile = function() {
+        Ajaxify.send({
+            func: 'open_datafile',
+            args: [this.datafile(), this.datafile_overwrite()],
+            callback: this.ajnotify('open_datafile'),
+        });
+    };
+
+    this.close_datafile = function() {
+        Ajaxify.send({
+            func: 'close-datafile',
+            callback: this.ajnotify('close_datafile'),
+        });
+    };
+
+    this.load_variables = function() {
+        Ajaxify.send({
+            func: 'load_variables',
+            args: [this.variables()],
+            callback: this.ajnotify('load_variables'),
+        });
+    };
+
+    this.save_variables = function() {
+        Ajaxify.send({
+            func: 'save_variables',
+            args: [this.variables(), this.variables_overwrite()],
+            callback: this.ajnotify('save_variables'),
+        });
+    };
+
+    this.select_protocol = function() {
+        Ajaxify.send({
+            func: 'select_protocol',
+            args: [this.protocol()],
+            callback: this.ajnotify('select_protocol'),
+        });
+    };
+
+    this.parse_state = function(state) {
+        if ('protocols' in state) {
+            // TODO update this.protocols
+        };
+        if ('current protocol' in state) {
+            this.protocol(state['current protocol']);
+        };
+        if ('experiment name' in state) {
+            this.experiment(state['experiment name']);
+        };
+        if ('datafile' in state) {
+            this.datafile(state['datafile']);
+        };
+        /*
+         * loaded
+         * paused - not used?
+         * running
+         * saved variables
+         * client_connected
+         * client_disconnected
+         * server_disconnected
+         */
+    };
+
+    this.process_events = function(events) {
+        for (event in events) {
+            if (!('name' in event)) {
+                this.debug("event " + event + " missing name");
+                continue;
+            };
+            if (event.name in this.vars) {
+                this.vars.push(event);
+            };
+        };
+    };
+
+    this.update = function() {
+        // make sure client is updated
+        Ajaxify.send({
+            func: 'update',
+            callback: this.ajnotify('update'),
+        });
+
+        // update running
+        Ajaxify.send({
+            attr: '_running',
+            callback: function (status, result, error) {
+                this.notify('update(running)', status, result, error);
+                if (status == 0) {
+                    this.connected(result);
+                };
+            },
+        });
+
+        if (this.connected()) {
+            // update state
+            Ajaxify.send({
+                attr: 'state',
+                callback: function (status, result, error) {
+                    this.notify('update(state)', status, result, error);
+                    if (status == 0) {
+                        this.parse_state(result);
+                    };
+                },
+            });
+            // update events/vars
+            Ajaxify.send({
+                func: 'get_events',
+                kwargs: {
+                    time_range: [this.last_time, this.max_time],
+                },
+                callback: function (status, result, error) {
+                    this.notify('update(get_events)', status, result, error);
+                    if (status == 0) {
+                        this.process_events(result);
+                    };
+                },
+            });
+        };
+    };
+
+    /* ----------------------------------------------
     this.toolbar_text = function(label, text) {
         $(".toolbar button." + label, this.node)
             .attr("title", text)
@@ -75,15 +266,6 @@ var MWClient = function(selector, cfg) {
                 this.notify("start_experiment", s, r, e);
             }});
         // issue ajax request: ajax?client=host&function=start_experiment
-        /*
-        $(".toolbar button.control", this.node).attr("title", "Stop")
-            .button("option", {
-                label: "Stop",
-                icons: {
-                    primary: "ui-icon-stop"
-                }
-            });
-        */
         this.running = true;
     };
 
@@ -157,7 +339,7 @@ var MWClient = function(selector, cfg) {
         this.toolbar_text("stream", "Stream");
         $("#stream_dialog").dialog("close");
     };
-
+    */
 
     /****************************************************************
      *                            Button
@@ -173,8 +355,8 @@ var MWClient = function(selector, cfg) {
             width: 350,
             modal: true,
             buttons: {
-                "Connect": function(event) { instance.connect(event); },
-                "Disconnect": function(event) { instance.disconnect(event); },
+                "Connect": function(event) { this.connect(event); },
+                "Disconnect": function(event) { this.disconnect(event); },
                 "Cancel": function() { $(this).dialog("close"); },
             },
             close: function() { $(this).dialog("close"); }
@@ -196,9 +378,9 @@ var MWClient = function(selector, cfg) {
             modal: true,
             buttons: {
                 "Load Experiment": function(event) {
-                    instance.load_experiment(event); },
+                    this.load_experiment(event); },
                 "Close Experiment": function(event) {
-                    instance.close_experiment(event); },
+                    this.close_experiment(event); },
                 "Cancel": function() { $(this).dialog("close"); },
             },
             close: function() { $(this).dialog("close"); }
@@ -227,8 +409,8 @@ var MWClient = function(selector, cfg) {
             width: 350,
             modal: true,
             buttons: {
-                "Load": function(event) { instance.load_variableset(event); },
-                "Save": function(event) { instance.save_variableset(event); },
+                "Load": function(event) { this.load_variableset(event); },
+                "Save": function(event) { this.save_variableset(event); },
                 "Cancel": function() { $(this).dialog("close"); },
             },
             close: function() { $(this).dialog("close"); }
@@ -247,8 +429,8 @@ var MWClient = function(selector, cfg) {
             width: 350,
             modal: true,
             buttons: {
-                "Start": function(event) { instance.start_stream(event); },
-                "Stop": function(event) { instance.stop_stream(event); },
+                "Start": function(event) { this.start_stream(event); },
+                "Stop": function(event) { this.stop_stream(event); },
                 "Cancel": function() { $(this).dialog("close"); },
             },
             close: function() { $(this).dialog("close"); }
@@ -256,7 +438,6 @@ var MWClient = function(selector, cfg) {
         $("#stream_dialog input[name='filename']").val(this.stream);
         $("#stream_dialog").dialog("open");
     };
-
 
     /****************************************************************
      *                             Setup 
@@ -269,7 +450,7 @@ var MWClient = function(selector, cfg) {
             icons: {
                 primary: "ui-icon-transferthick-e-w"
             }})
-            .click(function(event) { instance.connect_click(event); });
+            .click(function(event) { this.connect_click(event); });
 
         $(".experiment", this.node).button({
             text: "Experiment",
@@ -283,7 +464,7 @@ var MWClient = function(selector, cfg) {
             icons: {
                 primary: "ui-icon-play"
             }})
-            .click(function(event) { instance.control_click(event); });
+            .click(function(event) { this.control_click(event); });
 
         $(".variableset", this.node).button({
             text: "Variable Set",
@@ -347,7 +528,7 @@ var MWClient = function(selector, cfg) {
     };
 
     // ************** Return **************
-    this.setup_toolbar();
+    //this.setup_toolbar();
     this.load_config(cfg === undefined ? Object() : cfg)
     return this;
 }();
