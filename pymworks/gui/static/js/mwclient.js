@@ -12,7 +12,6 @@ var MWClient = function(selector, cfg) {
     this.running = false;
 
     //console.log(this);
-    var instance = this;
 
     if (this.DEBUG) {
         this.debug = function(message, level) {
@@ -351,4 +350,4 @@ var MWClient = function(selector, cfg) {
     this.setup_toolbar();
     this.load_config(cfg === undefined ? Object() : cfg)
     return this;
-};
+}();

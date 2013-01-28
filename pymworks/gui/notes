@@ -1,0 +1,43 @@
+server side:
+    python & flask (& flask_ajaxify & flask_filetree)
+        for basic web server w/ajax and SS file listing (minimum needed)
+    add gevent-socketio
+        for web sockets (event streaming...)
+
+client side:
+    jquery & jquery-json & jquery-filetree
+        for basic ajax, and file browsing
+    knockout.js for model-view data binding (much simplier UI)
+    jquery-ui for dialogs
+    pnotify for notifications
+    d3 & nvd3 for plotting
+    add twitter bootstrap as 'base' site structure
+        this would maybe allow easy mobile port
+
+interactions consist of:
+    simple event writes: (start_experiment, load_experiment...)
+        handled by button with data-bind: click
+    simple state information:
+        handled by elements with data-bind: text
+    graphs:
+        when a new event arrives, update graph (d3.enter)
+        this may require an explicit subscription
+    variable control
+        elements with data-bind: value & explicitly subscribed to observable
+        when a new value is set the explicit subscription will send the
+        new value to the server
+    variable monitoring
+        elements with data-bind: text
+
+The stream-like interactions might be easier with a websocket.
+However, for now encapsulate it in an update function which pushes new events
+into the appropriate observable event arrays. This could later be replaced
+with a websocket framework:
+
+client.watch_event('success');
+def update():
+    ...
+    if event.name == 'success':
+        this.events['success'].push(event);
+        // where this.events is a bunch of observable event arrays
+        // pushing will cause updates to the display & control elements
