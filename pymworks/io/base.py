@@ -24,7 +24,7 @@ they differ in the access mode:
 
 Sink
 - write_event
-- start/stop/restart
+- connect/disconnect/reconnect
 """
 
 
@@ -40,7 +40,7 @@ class IODevice(object):
     def disconnect(self):
         self._connected = False
 
-    def restart(self):
+    def reconnect(self):
         self.disconnect()
         self.connect()
 
