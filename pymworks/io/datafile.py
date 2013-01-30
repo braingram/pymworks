@@ -75,37 +75,37 @@ def resolve_filename(filename):
 
 
 class DataFile(Source):
-    def __init__(self, filename, autostart=True, autoresolve=True):
-        Source.__init__(self, autostart=False)
+    def __init__(self, filename, autoconnect=True, autoresolve=True):
+        Source.__init__(self, autoconnect=False)
         self.filename = resolve_filename(filename) if autoresolve else filename
-        if autostart:
-            self.start()
+        if autoconnect:
+            self.connect()
         # for backwards compatibility
-        self.close = self.stop
+        self.close = self.disconnect
 
-    def start(self):
-        if self._running:
+    def connect(self):
+        if self._connected:
             return
         self.file = open(self.filename, 'rb')
         self.ldo = LDOBinary.LDOBinaryUnmarshaler(self.file)
         #self.file.seek(0)
         #self.ldo.read_stream_handler = 0
         #self.ldo.um_init()
-        Source.start(self)
+        Source.connect(self)
         self.restart_file()
 
     def restart_file(self):
-        self.require_running()
+        self.require_connected()
         self.file.seek(0)
         self.ldo.read_stream_header = 0
         self.ldo.um_init()
 
-    def stop(self):
-        if not self._running:
+    def disconnect(self):
+        if not self._connected:
             return
         del self.ldo
         self.file.close()
-        Source.stop(self)
+        Source.disconnect(self)
 
     # to_code
     # to_name
@@ -123,7 +123,7 @@ class DataFile(Source):
             raise LookupError("Failed to find codec")
 
     def read_event(self):
-        self.require_running()
+        self.require_connected()
         try:
             e = Event(*self.ldo.load())
             if (self._codec is not None) and (e.code in self._codec):
@@ -160,16 +160,16 @@ class IndexedDataFile(DataFile):
         key = event code
         value = file locations of events
     """
-    def __init__(self, filename, autostart=True, autoresolve=True):
-        DataFile.__init__(self, filename, autostart=False, \
+    def __init__(self, filename, autoconnect=True, autoresolve=True):
+        DataFile.__init__(self, filename, autoconnect=False, \
                 autoresolve=autoresolve)
-        if autostart:
-            self.start()
+        if autoconnect:
+            self.connect()
 
-    def start(self):
-        if self._running:
+    def connect(self):
+        if self._connected:
             return
-        DataFile.start(self)
+        DataFile.connect(self)
         self._load_index()
 
     def _load_index(self):
@@ -201,7 +201,7 @@ class IndexedDataFile(DataFile):
 
     def _index_file(self, index_filename):
         """ Create an index of the file """
-        self.require_running()
+        self.require_connected()
         logging.info("indexing file: %s" % self.filename)
         self._index = collections.defaultdict(list)
         # need to do this manually (rather than calling all_events)
@@ -251,7 +251,7 @@ class IndexedDataFile(DataFile):
         """
         Return an event at a file position
         """
-        self.require_running()
+        self.require_connected()
         self.file.seek(position)
         return self.read_event()
 
@@ -274,25 +274,25 @@ class IndexedDataFile(DataFile):
 
 
 class DataFileWriter(Sink):
-    def __init__(self, filename, autostart=True):
-        Sink.__init__(self, autostart=False)
+    def __init__(self, filename, autoconnect=True):
+        Sink.__init__(self, autoconnect=False)
         self.filename = filename
-        if autostart:
-            self.start()
+        if autoconnect:
+            self.connect()
 
-    def start(self):
+    def connect(self):
         self.file = open(self.filename, 'wb')
         self.ldo = LDOBinary.LDOBinaryMarshaler(self.file)
         self.ldo.m_init()
-        Sink.start(self)
+        Sink.connect(self)
 
-    def stop(self):
+    def disconnect(self):
         del self.ldo
         self.file.close()
-        Sink.stop(self)
+        Sink.disconnect(self)
 
     def write_event(self, event):
-        self.require_running()
+        self.require_connected()
         self.ldo._marshal([event.code, event.time, event.value])
 
 

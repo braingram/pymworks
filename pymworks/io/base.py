@@ -29,37 +29,37 @@ Sink
 
 
 class IODevice(object):
-    def __init__(self, autostart=True):
-        self._running = False
-        if autostart:
-            self.start()
+    def __init__(self, autoconnect=True):
+        self._connected = False
+        if autoconnect:
+            self.connect()
 
-    def start(self):
-        self._running = True
+    def connect(self):
+        self._connected = True
 
-    def stop(self):
-        self._running = False
+    def disconnect(self):
+        self._connected = False
 
     def restart(self):
-        self.stop()
-        self.start()
+        self.disconnect()
+        self.connect()
 
-    def require_running(self):
-        if not self._running:
-            raise IOError("update called on stopped source")
+    def require_connected(self):
+        if not self._connected:
+            raise IOError("update called on unconnected source")
 
 
 class Source(IODevice):
-    def __init__(self, autostart=True):
-        IODevice.__init__(self, autostart=False)
+    def __init__(self, autoconnect=True):
+        IODevice.__init__(self, autoconnect=False)
         self._codec = None
         self._rcodec = None
         self._mintime = None
         self._maxtime = None
         self._callbacks = {}
         self.register_callback(0, self.process_codec_event)
-        if autostart:
-            self.start()
+        if autoconnect:
+            self.connect()
         # for backwards compatibility
         self.next_event = self.read_event
 
@@ -128,7 +128,7 @@ class Source(IODevice):
         self._maxtime = max(event.time, self._maxtime)
 
     def update(self, n=100, **kwargs):
-        self.require_running()
+        self.require_connected()
         for i in xrange(n):
             e = self.read_event(**kwargs)
             if e is None:
@@ -142,18 +142,18 @@ class Source(IODevice):
 
 
 class Sink(IODevice):
-    def __init__(self, autostart=True):
-        IODevice.__init__(self, autostart=False)
-        if autostart:
-            self.start()
+    def __init__(self, autoconnect=True):
+        IODevice.__init__(self, autoconnect=False)
+        if autoconnect:
+            self.connect()
 
     def write_event(self):
-        self.require_running()
+        self.require_connected()
 
 
 class Stream(Source, Sink):
-    def __init__(self, autostart=True):
-        Source.__init__(self, autostart=False)
-        Sink.__init__(self, autostart=False)
-        if autostart:
-            self.start()
+    def __init__(self, autoconnect=True):
+        Source.__init__(self, autoconnect=False)
+        Sink.__init__(self, autoconnect=False)
+        if autoconnect:
+            self.connect()

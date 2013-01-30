@@ -28,18 +28,18 @@ def read_event_from_ldo(ldo, codec):
 
 
 class EventStream(Stream):
-    def __init__(self, host, port=defaultport, autostart=True, \
+    def __init__(self, host, port=defaultport, autoconnect=True, \
             timeout=defaulttimeout):
-        Stream.__init__(self, autostart=False)
+        Stream.__init__(self, autoconnect=False)
         self.host = host
         self.port = port
         self.timeout = timeout
         self.safe = True
-        if autostart:
-            self.start()
+        if autoconnect:
+            self.connect()
 
-    def start(self):
-        if self._running:
+    def connect(self):
+        if self._connected:
             return
         try:
             self.rsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -71,10 +71,10 @@ class EventStream(Stream):
         self.wldo.written_stream_header = 1  # don't write the stream header
         self.wldo.m_init()
         logging.debug("Client: built marshaler %s" % self.wldo)
-        Stream.start(self)
+        Stream.connect(self)
 
-    def stop(self):
-        if not self._running:
+    def disconnect(self):
+        if not self._connected:
             return
         if hasattr(self, 'rsocket'):
             self.rsocket.shutdown(socket.SHUT_RD)
@@ -84,11 +84,11 @@ class EventStream(Stream):
             self.wsocket.shutdown(socket.SHUT_WR)
             self.wsocket.close()
             del self.wsocket
-        Stream.stop(self)
+        Stream.disconnect(self)
 
     def read_event(self, safe=None):
         safe = self.safe if safe is None else safe
-        self.require_running()
+        self.require_connected()
         if safe is False:
             return read_event_from_ldo(self.rldo, self._codec)
         r, _, _ = select.select([self.rsocket], [], [], self.timeout)
@@ -103,7 +103,7 @@ class EventStream(Stream):
                 "use BufferedStreamReader")
 
     def write_event(self, event, flush=True):
-        self.require_running()
+        self.require_connected()
         self.wldo.dump([event.code, event.time, event.value])
         if flush:
             self.wldo.flush()
@@ -117,18 +117,18 @@ class EventStream(Stream):
 
 
 class Server(Stream):
-    def __init__(self, host, port=defaultport, autostart=True, \
+    def __init__(self, host, port=defaultport, autoconnect=True, \
             timeout=defaulttimeout):
-        Stream.__init__(self, autostart=False)
+        Stream.__init__(self, autoconnect=False)
         self.host = host
         self.port = port
         self.timeout = timeout
         self.safe = True
-        if autostart:
-            self.start()
+        if autoconnect:
+            self.connect()
 
-    def start(self):
-        if self._running:
+    def connect(self):
+        if self._connected:
             return
         logging.debug("Server: listening for client write connnection")
         try:
@@ -171,10 +171,10 @@ class Server(Stream):
         logging.debug("Server: built unmarshaler: %s" % self.rldo)
         self.rldo.read_stream_header = 1  # don't read the stream header
         self.rldo.um_init()
-        Stream.start(self)
+        Stream.connect(self)
 
-    def stop(self):
-        if not self._running:
+    def disconnect(self):
+        if not self._connected:
             return
         if hasattr(self, 'rconn'):
             self.rconn.shutdown(socket.SHUT_RD)
@@ -188,11 +188,11 @@ class Server(Stream):
             self.socket.shutdown(socket.SHUT_RD)
             self.socket.close()
             del self.socket
-        Stream.stop(self)
+        Stream.disconnect(self)
 
     def read_event(self, safe=None):
         safe = self.safe if safe is None else safe
-        self.require_running()
+        self.require_connected()
         if safe is False:
             return read_event_from_ldo(self.rldo, self._codec)
         r, _, _ = select.select([self.rconn], [], [], self.timeout)
@@ -206,7 +206,7 @@ class Server(Stream):
         raise NotImplementedError("Server.get_events not possible")
 
     def write_event(self, event, flush=True):
-        self.require_running()
+        self.require_connected()
         self.wldo.dump([event.code, event.time, event.value])
         if flush:
             self.wldo.flush()
@@ -220,14 +220,14 @@ class Server(Stream):
 
 
 class BufferedEventStream(EventStream):
-    def __init__(self, host, port=defaultport, autostart=True, \
+    def __init__(self, host, port=defaultport, autoconnect=True, \
             timeout=defaulttimeout, bufferlength=1):
         EventStream.__init__(self, host, port=port, \
-                autostart=False, timeout=timeout)
+                autoconnect=False, timeout=timeout)
         self.bufferlength = bufferlength
         self.eventbuffer = collections.defaultdict(list)
-        if autostart:
-            self.start()
+        if autoconnect:
+            self.connect()
 
     def read_event(self, safe=None):
         e = EventStream.read_event(self, safe=safe)
@@ -270,18 +270,18 @@ class BufferedEventStream(EventStream):
 
 
 class Client(BufferedEventStream):
-    def __init__(self, host, port=defaultport, autostart=True, \
-            timeout=defaulttimeout, bufferlength=100, user=None, \
+    def __init__(self, host, port=defaultport, autoconnect=True,
+            timeout=defaulttimeout, bufferlength=100, user=None,
             startserver=True):
-        BufferedEventStream.__init__(self, host, port=port, autostart=False, \
+        BufferedEventStream.__init__(self, host, port=port, autoconnect=False,
                 bufferlength=bufferlength, timeout=timeout)
         self.tdelay = 0
         self.state = {}
         self.register_callback(1, self.update_state)
         self.user = getpass.getuser() if user is None else user
         self.startserver = startserver
-        if autostart:
-            self.start()
+        if autoconnect:
+            self.connect()
 
     def now(self):
         return int(pytime.time() * 1E6 + self.tdelay)
@@ -353,8 +353,8 @@ class Client(BufferedEventStream):
             return False
         return True
 
-    def start(self):
-        if self._running:
+    def connect(self):
+        if self._connected:
             return
         if self.startserver:
             try:
@@ -369,4 +369,4 @@ class Client(BufferedEventStream):
             else:
                 logging.debug("Started server at %s@%s" % \
                         (self.user, self.host))
-        BufferedEventStream.start(self)
+        BufferedEventStream.connect(self)
