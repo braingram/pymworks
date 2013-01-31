@@ -130,6 +130,9 @@ class LDOBinaryMarshaler(Marshaler):
     def m_complex(self, object):
         self.encode_opaque(repr(object))
 
+    def m_unicode(self, object):
+        self.m_str(str(object))
+
     def m_str(self, object):
         # the c scarab in mworks expects a null terminated string
         self.encode_opaque(object + '\x00')

@@ -331,6 +331,7 @@ class Client(BufferedEventStream):
             system.parse_warning('Failed to parse event with %s' % E, event)
 
     def start_server(self):
+        user = getpass.getuser() if self.user == '' else self.user
         if self.host in ('127.0.0.1', 'localhost'):
             cmd = '/usr/bin/open /Applications/MWServer.app'
         else:
@@ -338,7 +339,7 @@ class Client(BufferedEventStream):
             # BatchMode=yes disable password prompt
             cmd = 'ssh -o BatchMode=yes -l %s %s /usr/bin/open ' \
                     '/Applications/MWServer.app' % \
-                    (self.user, self.host)
+                    (user, self.host)
         logging.debug("Launching: %s" % cmd)
         if logging.root.level <= logging.DEBUG:
             kwargs = dict(stderr=sys.stderr, stdout=sys.stdout)
@@ -349,7 +350,7 @@ class Client(BufferedEventStream):
         pytime.sleep(1)
         if ret != 0:
             logging.warning("Failed to start server %s@%s, return code: %s" % \
-                    (self.user, self.host, ret))
+                    (user, self.host, ret))
             return False
         return True
 
