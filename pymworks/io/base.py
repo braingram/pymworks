@@ -118,7 +118,19 @@ class Source(IODevice):
                 raise ValueError("String type key[%s] not in codec[%s]" \
                         % (key, self.codec))
             key = self.to_code(key)
+        if key in self._callbacks:
+            raise ValueError("Only one callback[%s] is allowed per key[%s]" \
+                    % (self._callbacks[key], key))
         self._callbacks[key] = func
+
+    def remove_callback(self, key):
+        if isinstance(key, str):
+            if key not in self.codec.values():
+                raise ValueError("String type key[%s] not in codec[%s]" \
+                        % (key, self.codec))
+            key = self.to_code(key)
+        if key in self._callbacks:
+            del self._callbacks[key]
 
     def process_event(self, event):
         if event.code in self._callbacks:
