@@ -113,7 +113,7 @@ class Source(IODevice):
 
     # ------ callback ------
     def register_callback(self, key, func):
-        if isinstance(key, str):
+        if isinstance(key, (str, unicode)):
             if key not in self.codec.values():
                 raise ValueError("String type key[%s] not in codec[%s]" \
                         % (key, self.codec))
