@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="us">
+<head>
+	<meta charset="utf-8">
+    <title>Plot</title>
+    <script type="text/javascript"
+        src="{{ url_for('static', filename='js/jquery.js') }}"></script>
+    <script type="text/javascript"
+        src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script>
+    <script type="text/javascript"
+        src="{{ url_for('static', filename='js/jquery.pnotify.js') }}"></script>
+    <script type="text/javascript"
+        src="{{ url_for('static', filename='js/socket.io.js') }}"></script>
+    <script type="text/javascript"
+        src="{{ url_for('static', filename='js/knockout.js') }}"></script>
+    <script type="text/javascript"
+        src="{{ url_for('filetree.static', filename='js/jqueryFileTree.js') }}"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/smoothness/jquery-ui.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.pnotify.default.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.pnotify.default.icons.css') }}" />
+
+    <link href="{{ url_for('filetree.static', filename='css/jqueryFileTree.css') }}" rel="stylesheet"></link>
+
+    <style>
+        body {
+            font: 62.5% "Trebuchet MS", sans-serif;
+        }
+    </style>
+
+    <script type="text/javascript"
+        src="{{ url_for('static', filename='js/client.js') }}"></script>
+
+    <script>
+        $.pnotify.defaults.styling = "jqueryui";
+        var client; // make this global
+
+        $(document).ready(function () {
+            console.log("document ready");
+            client = mworks.client();
+            client.connect_socket();
+            // need to template the toolbar, and other tags that require id
+            $('#toolbar').tabs();
+
+            $('#filetree').fileTree({
+                root: '~',
+                script: "{{ url_for('filetree.sfiles') }}",
+            }, function (file) {
+                $('#filetree').dialog('close');
+                client.experiment_path(file);
+                client.load_experiment();
+            });
+            $('#filetree').dialog({
+                autoOpen: false,
+                height: 400,
+            });
+            client.select_experiment = function () {
+                $('#filetree').dialog('open');
+            };
+
+            client.throw = function (msg) {
+                $.pnotify({
+                    title: 'Error',
+                    text: msg,
+                    type: 'error',
+                });
+                throw msg;
+            };
+            // must be done AFTER redefining select_experiment :-/ 
+            ko.applyBindings(client);
+        });
+    </script>
+</head>
+<body>
+    <div class="client" data-bind="with: client">
+        <div id="toolbar" class="toolbar">
+            <ul>
+                <li><a href='#tb_connection'>Connection</a></li>
+                <li><a href='#tb_experiment'>Experiment</a></li>
+                <li><a href='#tb_variableset'>Variableset</a></li>
+                <li><a href='#tb_datafile'>Datafile</a></li>
+            </ul>
+            <!-- Connection -->
+            <div id="tb_connection" class="tb_connection">
+                <span>Socket: 
+                <span class="socket_connected"
+                    data-bind="text: socket_connected_verbose"></span></span>
+                <span>Server:
+                <span class="connected"
+                    data-bind="text: connected_verbose"></span></span>
+                <span>Host:
+                <input class="host" title="host"
+                data-bind="value: host"></input></span>
+                <span>Port:
+                <input class="port" title="port"
+                    data-bind="value: port"></input></span>
+                <span>User:
+                <input class="user" title="user"
+                    data-bind="value: user"></input></span>
+                <button class="connect"
+                    data-bind="text: toggle_connect_label,
+                        click: toggle_connect">
+                </button>
+            </div>
+
+            <!-- Experiment -->
+            <div id="tb_experiment" class="tb_experiment">
+                <button class="running"
+                    title="Start/Stop"
+                    data-bind="text: toggle_running_label,
+                        click: toggle_running">
+                </button>
+                <span class="experiment_name"
+                    data-bind="text: experiment_name"></span>
+                <input class="experiment_path"
+                    data-bind="value: experiment_path"></input>
+                <button class="load_experiment"
+                    data-bind="click: select_experiment">Select Experiment
+                </button>
+                <span>Protocol:
+                <select class="protocol"
+                    title="Select protocol"
+                    data-bind="options: protocols, value: protocol">
+                </select></span>
+            </div>
+
+            <!-- Variables -->
+            <div id="tb_variableset" class="tb_variableset">
+                <span>Variables:
+                <select class="variableset"
+                    title="Select variableset"
+                    data-bind="options: variablesets,
+                        value: variableset">
+                </select>
+                <input class="variableset_overwrite" type="checkbox"
+                    title="Overwrite Variables?"
+                    data-bind="checked: variableset_overwrite"></input>
+                <button class="load_variableset"
+                    title="Load Variables"
+                    data-bind="click: load_variableset">Load</button>
+                <button class="save_variableset"
+                    title="Save Variables"
+                    data-bind="click: save_variableset">Save</button>
+                </span>
+            </div>
+
+            <!-- Datafile -->
+            <div id="tb_datafile" class="tb_datafile">
+                <span>Datafile:
+                <input class="datafile" data-bind="value: datafile"></input>
+                <input class="datafile_overwrite" type="checkbox"
+                    title="Overwrite Datafile?"
+                    data-bind="checked: datafile_overwrite"></input>
+                <button class="open_datafile" data-bind="click: open_datafile">
+                Open</button>
+                <button class="close_datafile" data-bind="click: close_datafile">
+                Close</button>
+                </span>
+            </div>
+        </div> <!-- toolbar -->
+        <div class="registrar">
+            <span>Register Variable:
+                <form data-bind="submit: function (item) { client.register($('.variable', item)[0].value); }, eventBubble: false">
+                    <input class="variable"></input>
+                </form>
+            </span>
+        </div>
+        <div class="controls">
+        </div>
+        <span data-bind="text: vars().length"></span>
+        <div class="variables">
+            <table>
+                <thead><tr>
+                        <th>Name</th><th>Latest</th>
+                </tr></thead>
+                <tbody data-bind="foreach: vars">
+                    <tr>
+                        <td data-bind="text: name"></td>
+                        <td data-bind="text: latest().value"</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="graphs">
+        </div>
+    </div>
+    <div id="filetree" title="Select a file"></div>
+</body>
+</html>
