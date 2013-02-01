@@ -3,6 +3,7 @@
 import collections
 import logging
 import getpass
+import os
 import select
 import socket
 import subprocess
@@ -294,7 +295,9 @@ class Client(BufferedEventStream):
 
     # experiment : load(fn), start, stop, pause
     def load_experiment(self, filename):
-        self.write_event(system.load_experiment(filename))
+        # resolve
+        fn = os.path.realpath(os.path.expanduser(filename))
+        self.write_event(system.load_experiment(fn))
 
     def start_experiment(self):
         self.write_event(system.start_experiment())
