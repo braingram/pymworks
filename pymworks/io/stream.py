@@ -8,6 +8,7 @@ import select
 import socket
 import subprocess
 import sys
+import threading
 import time as pytime
 
 from base import Stream
@@ -270,6 +271,30 @@ class BufferedEventStream(EventStream):
         return events
 
 
+class Command(object):
+    def __init__(self, cmd, **kwargs):
+        self.cmd = cmd
+        self.kwargs = kwargs
+        self.process = None
+
+    def run(self, timeout):
+        def target():
+            self.kwargs['shell'] = True
+            self.process = subprocess.Popen(self.cmd, **self.kwargs)
+            self.process.communicate()
+
+        thread = threading.Thread(target=target)
+        thread.start()
+
+        logging.debug("Waiting for Command[%s] to finish" % (self.cmd))
+        thread.join(timeout)
+        if thread.is_alive():
+            logging.debug("Killing timed out thread: %s" % timeout)
+            self.process.terminate()
+            thread.join()
+        return self.process.returncode
+
+
 class Client(BufferedEventStream):
     def __init__(self, host, port=defaultport, autoconnect=True,
             timeout=defaulttimeout, bufferlength=100, user=None,
@@ -348,13 +373,14 @@ class Client(BufferedEventStream):
             kwargs = dict(stderr=sys.stderr, stdout=sys.stdout)
         else:
             kwargs = {}
-        ret = subprocess.call(cmd.split(), **kwargs)
-        # TODO wait a bit ??
-        pytime.sleep(1)
+        command = Command(cmd, **kwargs)
+        ret = command.run(1)
         if ret != 0:
             logging.warning("Failed to start server %s@%s, return code: %s" % \
                     (user, self.host, ret))
             return False
+        # wait for server to start
+        pytime.sleep(1)
         return True
 
     def connect(self):
