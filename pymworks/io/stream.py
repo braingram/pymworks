@@ -33,6 +33,7 @@ class EventStream(Stream):
     def __init__(self, host, port=defaultport, autoconnect=True, \
             timeout=defaulttimeout):
         Stream.__init__(self, autoconnect=False)
+        self.tdelay = 0
         self.host = host
         self.port = port
         self.timeout = timeout
@@ -106,7 +107,45 @@ class EventStream(Stream):
         raise NotImplementedError("StreamReader.get_events not possible, "
                 "use BufferedStreamReader")
 
-    def write_event(self, event, flush=True):
+    def now(self):
+        return int(pytime.time() * 1E6 + self.tdelay)
+
+    def make_event(self, key, value, time=None):
+        if isinstance(key, str):
+            key = self.to_code(key)
+        time = self.now() if time is None else time
+        return Event(key, time, value, name=self.to_name(key))
+
+    def write_event(self, *args, **kwargs):
+        """
+        Write an event or construct and then write an event to the outgoing
+        event stream
+
+        valid args:
+            args = (event, )
+                where event has a code time and value
+            args = (key, value)
+                will be passed on to self.make_event to construct an event
+            args = (key, value, time)
+                will be passed on to self.make_event to construct an event
+
+        valid kwargs:
+            flush : (default=True)
+                flush the write buffer after writing
+
+        raises ValueError on incorrect args/event
+        """
+        flush = kwargs.get('flush', True)
+        if len(args) == 0:
+            raise ValueError("args must be at least length 1")
+        if len(args) == 1:
+            event = args[0]
+        else:
+            event = self.make_event(*args)
+        if not all([hasattr(event, k) for k in ('code', 'time', 'value')]):
+            raise ValueError(\
+                    "Event %s does not contain a code time and value" % \
+                    event)
         self.require_connected()
         self.wldo.dump([event.code, event.time, event.value])
         if flush:
@@ -303,22 +342,12 @@ class Client(BufferedEventStream):
             startserver=True):
         BufferedEventStream.__init__(self, host, port=port, autoconnect=False,
                 bufferlength=bufferlength, timeout=timeout)
-        self.tdelay = 0
         self.state = {}
         self.register_callback(1, self.update_state)
         self.user = getpass.getuser() if user is None else user
         self.startserver = startserver
         if autoconnect:
             self.connect()
-
-    def now(self):
-        return int(pytime.time() * 1E6 + self.tdelay)
-
-    def make_event(self, key, time, value):
-        if isinstance(key, str):
-            key = self.to_code(key)
-        time = self.now() if time is None else time
-        return Event(key, time, value, name=self.to_name(key))
 
     # experiment : load(fn), start, stop, pause
     def load_experiment(self, filename):
