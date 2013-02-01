@@ -45,8 +45,9 @@ class EventStream(Stream):
             return
         try:
             self.rsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            #self.rsocket.settimeout(self.timeout)
+            self.rsocket.settimeout(self.timeout)
             self.rsocket.connect((self.host, self.port))
+            self.rsocket.settimeout(socket.getdefaulttimeout())
         except socket.error as E:
             logging.error("StreamReader.start failed with: %s" % E)
             if hasattr(self, 'rsocket'):
@@ -54,8 +55,9 @@ class EventStream(Stream):
             return
         try:
             self.wsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            #self.wsocket.settimeout(self.timeout)
+            self.wsocket.settimeout(self.timeout)
             self.wsocket.connect((self.host, self.port))
+            self.wsocket.settimeout(socket.getdefaulttimeout())
         except socket.error as E:
             logging.error("StreamReader.start failed with: %s" % E)
             if hasattr(self, 'wsocket'):
