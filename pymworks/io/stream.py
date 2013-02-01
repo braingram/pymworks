@@ -144,7 +144,7 @@ class Server(Stream):
             self.wconn, self.waddr = self.socket.accept()
             #self.wconn.settimeout(self.timeout)
         except socket.error as E:
-            logging.error("Server.start failed with: %s" % E)
+            logging.error("Server.connect failed with: %s" % E)
             del self.socket
             return
 
