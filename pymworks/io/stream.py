@@ -364,14 +364,11 @@ class Client(BufferedEventStream):
         except Exception as E:
             system.parse_warning('Failed to parse event with %s' % E, event)
 
-    def start_server(self):
+    def start_server(self, timeout=1):
         user = getpass.getuser() if self.user == '' else self.user
         if self.host in ('127.0.0.1', 'localhost'):
             cmd = '/usr/bin/open /Applications/MWServer.app'
         else:
-            # get timeout from: self.timeout, defaulttimeout, 0.1
-            timeout = defaulttimeout if self.timeout is None else self.timeout
-            timeout = 1 if timeout is None else timeout
             # -f puts ssh in background
             # BatchMode=yes disable password prompt
             cmd = 'ssh -o ConnectTimeout=%s -o BatchMode=yes ' \
