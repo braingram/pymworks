@@ -9,10 +9,11 @@ from io.stream import Client
 from io.datafile import open_file as open
 
 import events
+import protocol
 import stats
 
 __all__ = ['datafile', 'Event', 'DataFile', 'IndexedDataFile', 'open_file',
-        'stream', 'Client', 'load', 'events', 'stats']
+        'stream', 'Client', 'load', 'events', 'protocol', 'stats']
 
 #import datafile
 #from datafile import DataFile, IndexedDataFile, open_file
