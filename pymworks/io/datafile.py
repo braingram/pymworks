@@ -222,8 +222,8 @@ class IndexedDataFile(DataFile):
         # get codec and time ranges
         self._index.update({ \
                 '_codec': self.codec, \
-                '_mintime': self.minimum_time, \
-                '_maxtime': self.maximum_time, \
+                '_mintime': self._mintime, \
+                '_maxtime': self._maxtime, \
                 '_hash': self._hash_file(), \
                 })
 
