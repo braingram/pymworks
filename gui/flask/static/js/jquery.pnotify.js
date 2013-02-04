@@ -1,1 +1,1 @@
-../pnotify-1.2.0/jquery.pnotify.js
+jquery.pnotify.min.js
