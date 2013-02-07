@@ -89,6 +89,79 @@ mworks.client = (function () {
         throw msg;
     };
 
+    client.load_config = function (config) {
+        /*
+         * host
+         * port
+         * user
+         * experiment_path
+         * experiment_name
+         * variableset
+         * variableeset_overwrite
+         * variablesets
+         * datafile
+         * datafile_overwrite
+         * protocol
+         * protocols
+         * 
+         * autoconnect
+         *
+         * ui/graphs
+         */
+        if ('host' in config) {
+            client.host(config['host']);
+        };
+        if ('port' in config) {
+            client.port(config['port']);
+        };
+        if ('user' in config) {
+            client.port(config['user']);
+        };
+        if ('experiment_path' in config) {
+            client.experiment_path(config['experiment_path']);
+        };
+        if ('experiment_name' in config) {
+            client.experiment_name(config['experiment_name']);
+        };
+        if ('variableset' in config) {
+            client.variableset(config['variableset']);
+        };
+        if ('variableset_overwrite' in config) {
+            client.variableset_overwrite(config['variableset_overwrite']);
+        };
+        if ('variablesets' in config) {
+            // TODO array update
+        };
+        if ('datafile' in config) {
+            client.datafile(config['datafile']);
+        };
+        if ('datafile_overwrite' in config) {
+            client.datafile_overwrite(config['datafile_overwrite']);
+        };
+        if ('protocol' in config) {
+            client.protocol(config['protocol']);
+        };
+        if ('protocols' in config) {
+            // TODO array update
+        };
+
+        if ('autoconnect' in config) {
+            // TODO connect
+        };
+        if ('autoload_experiment' in config) {
+            // TODO load experiment
+        };
+        if ('autoload_variables' in config) {
+            // TODO load variables
+        };
+        if ('autosave' in config) {
+            // TODO start saving
+        };
+        if ('autostart' in config) {
+            // TODO start experiment
+        };
+    };
+
     client.parse_state = function (state) {
         console.log('State...');
         console.log(state);
