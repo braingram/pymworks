@@ -281,18 +281,13 @@ class BufferedEventStream(EventStream):
         return e
 
     def find_codec(self, **kwargs):
-        if self._codec is None:
-            if 0 in self.eventbuffer.keys():
-                self.process_codec_event(self.eventbuffer[0][-1])
+        if 0 in self.eventbuffer.keys():
+            self.process_codec_event(self.eventbuffer[0][-1])
         if self._codec is None:
             raise LookupError("Failed to find codec")
 
     def get_codec(self):
-        if self._codec is None:
-            self.find_codec()
-        else:
-            if len(self._codec) != len(self.eventbuffer[0][-1].value):
-                self.process_codec_event(self.eventbuffer[0][-1])
+        self.find_codec()
         return self._codec
 
     def get_events(self, key=None, time_range=None):
