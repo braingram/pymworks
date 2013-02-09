@@ -83,12 +83,13 @@ class ClientNamespace(BaseNamespace):
                     except EOFError:
                         # reached the 'end' of the stream, so... disconnect
                         self.client.disconnect()
-                    # check state
-                    if prev_state != self.client.state:
-                        print 'State:', self.client.state
-                        self.emit('state', self.client.state)
-                        prev_state = self.client.state.copy()
-                    # check events
+                    # check state & codec
+                    state = self.client.state
+                    state['codec'] = self.client.codec
+                    if prev_state != state:
+                        print 'State:', state
+                        self.emit('state', state)
+                        prev_state = state.copy()
                 gevent.sleep(0.3)
 
         self.spawn(update)
@@ -104,13 +105,13 @@ class ClientNamespace(BaseNamespace):
         logging.debug("emit: %s" % event)
         self.emit('event', dict(event))
 
-    def on_register(self, key):
-        logging.debug("register: %s" % key)
-        if hasattr(self, 'client'):
-            try:
-                self.client.register_callback(key, self.emit_event)
-            except ValueError as E:
-                self.emit('error', 'failed to register %s, %s' % (key, E))
+    #def on_register(self, key):
+    #    logging.debug("register: %s" % key)
+    #    if hasattr(self, 'client'):
+    #        try:
+    #            self.client.register_callback(key, self.emit_event)
+    #        except ValueError as E:
+    #            self.emit('error', 'failed to register %s, %s' % (key, E))
 
     def on_event(self, event):
         logging.debug("Event: %s" % event)

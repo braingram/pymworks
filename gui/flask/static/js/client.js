@@ -20,17 +20,51 @@ mworks.utils = (function ($) {
         return id;
     };
 
+    utils.objects_equal = function (a, b) {
+        if (Object.keys(a).length != Object.keys(b).length) {
+            return false;
+        };
+        for (k in a) {
+            if (!b.hasOwnProperty(k)) {
+                return false;
+            };
+            if ((typeof(a[k]) == 'object') & (typeof(b[k]) == 'object')) {
+                if (!utils.objects_equal(a[k], b[k])) {
+                    return false;
+                };
+            } else {
+                if (a[k] != b[k]) {
+                    return false;
+                };
+            };
+        };
+        return true;
+    };
     return utils;
 }(jQuery));
 
-mworks.variable = function (name) {
+mworks.variable = function (name, send_event) {
     var variable = this;
     variable.name = ko.observable(name);
     variable.events = ko.observableArray();
+    variable.n = 1;
 
-    variable.latest = ko.computed(function () {
-        return variable.events().length ? variable.events()[variable.events().length - 1] : {value: null};
+    variable.latest = ko.computed({
+        read: function () {
+            return variable.events().length ? variable.events()[variable.events().length - 1] : {value: null};
+        },
+        write: function (value) {
+            send_event(variable.name, value);
+        },
+        owner: this
     });
+
+    variable.add_event = function (event) {
+        variable.events.push(event);
+        while (variable.events.length > variable.n) {
+            variable.shift();
+        };
+    };
 
     //variable.incrementing = ko.computed(function () ...
 
@@ -84,6 +118,7 @@ mworks.client = (function () {
     client.loaded = ko.observable(false);
 
     client.vars = ko.observableArray();
+    client.codec = {};
 
     client.throw = function (msg) {
         throw msg;
@@ -231,6 +266,19 @@ mworks.client = (function () {
          * datafile error
          * variableset : does not exist!
          */
+        if ('codec' in state) {
+            // test equality of client.codec and state.codec
+            if (!mworks.utils.objects_equal(client.codec, state.codec)) {
+                client.codec = state.codec;
+                // update vars
+                client.vars.removeAll();
+                for (k in client.codec) {
+                    name = client.codec[k];
+                    client.vars.push(
+                            new mworks.variable(name, client.send_event));
+                };
+            };
+        };
     };
 
     client.require_socket = function () {
@@ -260,6 +308,7 @@ mworks.client = (function () {
     */
 
     // used to listen for events
+    /*
     client.register = function (key) {
         console.log("Register: " + key);
         console.log(key);
@@ -273,6 +322,7 @@ mworks.client = (function () {
             client.throw("register[" + key + "] called more than once");
         };
     };
+    */
     
     client.connect_socket = function () {
         client.socket = io.connect('/client');
@@ -295,7 +345,8 @@ mworks.client = (function () {
             */
             for (i in client.vars()) {
                 if (client.vars()[i].name() == event.name) {
-                    client.vars()[0].events.push(event);
+                    client.vars()[i].add_event(event);
+                    //client.vars()[i].events.push(event);
                     return
                 };
             };
@@ -317,7 +368,7 @@ mworks.client = (function () {
         });
     };
 
-    client.send_event = function(name, key, value) {
+    client.send_event = function(key, value) {
         client.require_socket();
         client.require_connected();
         client.socket.emit('event', {key: key, value: value});
