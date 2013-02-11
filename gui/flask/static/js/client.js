@@ -115,11 +115,19 @@ mworks.client = (function () {
         return client.running() ? "Stop" : "Start";
     });
     client.paused = ko.observable(false);
+    client.toggle_paused_label = ko.computed(function () {
+        return client.paused() ? "Resume" : "Pause";
+    });
     client.loaded = ko.observable(false);
 
     client.vars = ko.observableArray();
     client.codec = {};
     client.unstored_events = [];
+
+    // these will be called after their respective state changes
+    client.after_connected = null;
+    client.after_loaded = null;
+    client.after_protocols = null;
 
     client.throw = function (msg) {
         throw msg;
@@ -134,11 +142,11 @@ mworks.client = (function () {
          * experiment_name
          * variableset
          * variableeset_overwrite
-         * variablesets
+         * variablesets : set by state
          * datafile
          * datafile_overwrite
          * protocol
-         * protocols
+         * protocols : set by state
          * 
          * autoconnect
          *
@@ -165,9 +173,6 @@ mworks.client = (function () {
         if ('variableset_overwrite' in config) {
             client.variableset_overwrite(config['variableset_overwrite']);
         };
-        if ('variablesets' in config) {
-            // TODO array update
-        };
         if ('datafile' in config) {
             client.datafile(config['datafile']);
         };
@@ -177,24 +182,49 @@ mworks.client = (function () {
         if ('protocol' in config) {
             client.protocol(config['protocol']);
         };
-        if ('protocols' in config) {
-            // TODO array update
-        };
 
         if ('autoconnect' in config) {
-            // TODO connect
+            client.connect();
         };
         if ('autoload_experiment' in config) {
-            // TODO load experiment
+            client.after_connected = function () {
+                console.log("after_connected... ");
+                client.load_experiment();
+            };
+            if (client.connected()) {
+                client.after_connected();
+            };
         };
-        if ('autoload_variables' in config) {
-            // TODO load variables
+        client.after_loaded = function () {
+            console.log("after_loaded...");
+            if ('autoload_variableset' in config) {
+                client.load_variableset();
+            };
+            if ('autosave' in config) {
+                client.open_datafile();
+            };
+            /*
+            if ('autostart' in config) {
+                client.start_experiment();
+            };
+            */
         };
-        if ('autosave' in config) {
-            // TODO start saving
+        if (client.loaded()) {
+            client.after_loaded();
         };
+
         if ('autostart' in config) {
-            // TODO start experiment
+            client.after_protocols = function () {
+                console.log("after_protocols...");
+                client.start_experiment();
+                client.after_protocols = null;
+            };
+            for (i in client.protocols()) {
+                if (client.protocol() == client.protocols()[i]) {
+                    client.after_protocols();
+                    break;
+                };
+            };
         };
     };
 
@@ -209,6 +239,9 @@ mworks.client = (function () {
         if ('loaded' in state) {
             if (Boolean(state.loaded) != client.loaded()) {
                 client.loaded(Boolean(state.loaded));
+                if (client.loaded() & (client.after_loaded != null)) {
+                    client.after_loaded();
+                };
             };
         };
         if ('running' in state) {
@@ -221,7 +254,6 @@ mworks.client = (function () {
                 client.experiment_name(state['experiment name']);
                 client.protocols.removeAll();
                 client.variablesets.removeAll();
-                client.protocol('');
             };
         };
         if ('experiment path' in state) {
@@ -243,6 +275,9 @@ mworks.client = (function () {
                             client.protocols.push(state.protocols[i]['protocol name']);
                         };
                     };
+                };
+                if (client.after_protocols != null) {
+                    client.after_protocols();
                 };
             };
         };
@@ -388,6 +423,9 @@ mworks.client = (function () {
         
         client.socket.on('iostatus', function (iostatus) {
             client.connected(iostatus);
+            if (client.connected() & (client.after_connected != null)) {
+                client.after_connected();
+            };
         });
     };
 
@@ -437,8 +475,13 @@ mworks.client = (function () {
         client.require_socket();
         client.require_connected();
         if (client.protocol() != '') {
-            client.socket.emit('command', 'select_protocol', client.protocol());
-            client.socket.emit('command', 'start_experiment');
+            for (i in client.protocols()) {
+                if (client.protocol() == client.protocols()[i]) {
+                    client.socket.emit('command', 'select_protocol', client.protocol());
+                    client.socket.emit('command', 'start_experiment');
+                    break;
+                };
+            };
         };
     };
 
@@ -454,12 +497,26 @@ mworks.client = (function () {
         } else {
             client.start_experiment();
         };
-    }
+    };
+
+    client.toggle_paused = function () {
+        if (client.paused()) {
+            client.resume_experiment();
+        } else {
+            client.pause_experiment();
+        };
+    };
 
     client.pause_experiment = function () {
         client.require_socket();
         client.require_connected();
         client.socket.emit('command', 'pause_experiment');
+    };
+
+    client.resume_experiment = function () {
+        client.require_socket();
+        client.require_connected();
+        client.socket.emit('command', 'resume_experiment');
     };
 
     client.open_datafile = function () {
