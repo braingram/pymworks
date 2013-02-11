@@ -34,6 +34,9 @@ PAYLOAD_TYPE = {
         'request_codec': 3010,
         'set_event_forwarding': 3011,
         'request_variables': 3012,
+        'clock_offset': 3013,
+        'connected': 3014,
+        'resume_experiment': 3015,
 
         # response messages
         'datafile_opened': 4007,
@@ -85,6 +88,7 @@ def load_experiment(filename):
 start_experiment = system_event_macro('control', 'start_experiment')
 stop_experiment = system_event_macro('control', 'stop_experiment')
 pause_experiment = system_event_macro('control', 'pause_experiment')
+resume_experiment = system_event_macro('control', 'resume_experiment')
 request_codec = system_event_macro('control', 'request_codec')
 request_variables = system_event_macro('control', 'request_variables')
 # TODO setEventForwarding : ln 202-218

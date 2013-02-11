@@ -334,6 +334,9 @@ class Client(BufferedEventStream):
     def pause_experiment(self):
         self.write_event(system.pause_experiment())
 
+    def resume_experiment(self):
+        self.write_event(system.resume_experiment())
+
     # datafile : open(fn, overwrite=False), close(fn)
     def open_datafile(self, filename, overwrite=False):
         self.write_event(system.open_datafile(filename, overwrite))
