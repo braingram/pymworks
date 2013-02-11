@@ -56,7 +56,7 @@ class Source(IODevice):
         self._rcodec = None
         self._mintime = None
         self._maxtime = None
-        self._callbacks = {}
+        self._callbacks = []
         self.register_callback(0, self.process_codec_event)
         if autoconnect:
             self.connect()
@@ -118,23 +118,26 @@ class Source(IODevice):
                 raise ValueError("String type key[%s] not in codec[%s]" \
                         % (key, self.codec))
             key = self.to_code(key)
-        if key in self._callbacks:
-            raise ValueError("Only one callback[%s] is allowed per key[%s]" \
-                    % (self._callbacks[key], key))
-        self._callbacks[key] = func
+        #if key in self._callbacks:
+        #    raise ValueError("Only one callback[%s] is allowed per key[%s]" \
+        #            % (self._callbacks[key], key))
+        cid = len(self._callbacks)
+        self._callbacks.append((key, func))
+        return cid
+        #self._callbacks[key] = func
 
-    def remove_callback(self, key):
-        if isinstance(key, str):
-            if key not in self.codec.values():
-                raise ValueError("String type key[%s] not in codec[%s]" \
-                        % (key, self.codec))
-            key = self.to_code(key)
-        if key in self._callbacks:
-            del self._callbacks[key]
+    def remove_callback(self, cid):
+        if (cid < 0) or (cid >= len(self._callbacks)):
+            raise ValueError("Invalid callback id %s, must be >=0 and <%s" % \
+                    (cid, len(self._callbacks)))
+        del self._callbacks[cid]
 
     def process_event(self, event):
-        if event.code in self._callbacks:
-            self._callbacks[event.code](event)
+        for (k, cb) in self._callbacks:
+            if (event.code == k) or (k == -1):
+                cb(event)
+        #if event.code in self._callbacks:
+        #    self._callbacks[event.code](event)
         self._mintime = event.time if self._mintime is None \
                 else min(event.time, self._mintime)
         self._maxtime = max(event.time, self._maxtime)

@@ -67,6 +67,7 @@ def template(template):
 class ClientNamespace(BaseNamespace):
     def recv_connect(self):
         self.client = pymworks.io.stream.Client('127.0.0.1', autoconnect=False)
+        self.client.register_callback(-1, self.emit_event)  # emit all events
 
         # start update thread
         def update():
@@ -85,11 +86,15 @@ class ClientNamespace(BaseNamespace):
                         self.client.disconnect()
                     # check state & codec
                     state = self.client.state
-                    state['codec'] = self.client.codec
-                    if prev_state != state:
-                        print 'State:', state
-                        self.emit('state', state)
-                        prev_state = state.copy()
+                    try:
+                        state['codec'] = self.client.codec
+                        if prev_state != state:
+                            print 'State:', state
+                            self.emit('state', state)
+                            prev_state = state.copy()
+                    except LookupError:
+                        # failed to find codec
+                        pass
                 gevent.sleep(0.3)
 
         self.spawn(update)

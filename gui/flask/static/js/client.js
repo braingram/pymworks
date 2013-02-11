@@ -61,8 +61,8 @@ mworks.variable = function (name, send_event) {
 
     variable.add_event = function (event) {
         variable.events.push(event);
-        while (variable.events.length > variable.n) {
-            variable.shift();
+        while (variable.events().length > variable.n) {
+            variable.events.shift();
         };
     };
 
@@ -119,6 +119,7 @@ mworks.client = (function () {
 
     client.vars = ko.observableArray();
     client.codec = {};
+    client.unstored_events = [];
 
     client.throw = function (msg) {
         throw msg;
@@ -218,6 +219,9 @@ mworks.client = (function () {
         if ('experiment name' in state) {
             if (state['experiment name'] != client.experiment_name()) {
                 client.experiment_name(state['experiment name']);
+                client.protocols.removeAll();
+                client.variablesets.removeAll();
+                client.protocol('');
             };
         };
         if ('experiment path' in state) {
@@ -276,6 +280,20 @@ mworks.client = (function () {
                     name = client.codec[k];
                     client.vars.push(
                             new mworks.variable(name, client.send_event));
+                };
+                events = client.unstored_events.splice(0, client.unstored_events.length);
+                for (ei in events) {
+                    event = events[ei];
+                    for (vi in client.vars()) {
+                        if (client.vars()[vi].name() == event.name) {
+                            client.vars()[vi].add_event(event);
+                            event = null;
+                            break;
+                        };
+                    };
+                    if (event) {
+                        client.unstored_events.push(event);
+                    };
                 };
             };
         };
@@ -343,15 +361,20 @@ mworks.client = (function () {
                 client.throw('Received event[' + event + '] that was not in vars');
             };
             */
-            for (i in client.vars()) {
-                if (client.vars()[i].name() == event.name) {
-                    client.vars()[i].add_event(event);
-                    //client.vars()[i].events.push(event);
+            if (event.name == null) {
+                if (event.code > 3) {
+                    client.throw('Received no name event with code > 3 [' + event.code + '=' + event.value + ']')
+                } else {
                     return
                 };
             };
-            client.throw("event not stored: " + event);
-            //client.varbyname(event.name).push(event);
+            for (i in client.vars()) {
+                if (client.vars()[i].name() == event.name) {
+                    client.vars()[i].add_event(event);
+                    return
+                };
+            };
+            client.unstored_events.push(event);
         });
 
         client.socket.on('error', function (error) {
