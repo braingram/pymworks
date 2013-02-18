@@ -1,0 +1,1 @@
+<button class="control_button" title="{{ data['variable'] }}[{{ data['value'] }}]" onclick="client.send_event('{{ data['variable']|safe|string }}', {{ data['value']|safe }})">{{ data['variable']|safe|string }}</button>

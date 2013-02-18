@@ -32,10 +32,11 @@ from socketio.server import SocketIOServer
 import werkzeug.serving
 
 import flask_filetree
+import flask_mercury
 import pymworks
 
 
-app = flask.Flask('ws')
+app = flask.Flask('pymworks client')
 gevent.monkey.patch_all()
 
 
@@ -52,6 +53,9 @@ def dfilter(d):
 
 _, app = flask_filetree.make_blueprint(register=True, app=app,
         fnfilter=fnfilter, dfilter=dfilter)
+tdir = os.path.realpath('mercury_templates')
+_, app = flask_mercury.make_blueprint(register=True, app=app,
+        template_dir=tdir)
 
 
 @app.route('/')

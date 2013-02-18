@@ -2,7 +2,7 @@
 <html lang="us">
 <head>
 	<meta charset="utf-8">
-    <title>Plot</title>
+    <title>MWorks Client</title>
     <script type="text/javascript"
         src="{{ url_for('static', filename='js/jquery.js') }}"></script>
     <script type="text/javascript"
@@ -15,6 +15,9 @@
         src="{{ url_for('static', filename='js/knockout.js') }}"></script>
     <script type="text/javascript"
         src="{{ url_for('filetree.static', filename='js/jqueryFileTree.js') }}"></script>
+
+    <script type="text/javascript"
+        src="{{ url_for('mercury.static', filename='js/mercury_loader.js') }}"></script>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/smoothness/jquery-ui.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.pnotify.default.css') }}" />
@@ -35,12 +38,32 @@
         $.pnotify.defaults.styling = "jqueryui";
         var client; // make this global
 
+        
+        $(window).bind('mercury:ready', function () {
+            {% if (content != {}) and ('controls' in content) and ('snippets' in content['controls']) %}
+            snippets = {{ content['controls']['snippets']|tojson|safe }};
+            {% else %}
+            snippets = {};
+            {% endif %}
+            
+            {% if (content != {}) and ('graphs' in content) and ('snippets' in content['graphs']) %}
+            other_snippets = {{ content['graphs']['snippets']|tojson|safe }};
+            for (k in other_snippets) {
+                snippets[k] = other_snippets[k];
+            };
+            {% endif %}
+            
+            snippets = Mercury.Snippet.load(snippets);
+            console.log("No snippets provided");
+            });
+
         $(document).ready(function () {
             console.log("document ready");
             client = mworks.client();
             client.connect_socket();
             // need to template the toolbar, and other tags that require id
             $('#toolbar').tabs();
+            $('#display').tabs();
 
             $('#filetree').fileTree({
                 root: '~',
@@ -79,6 +102,7 @@
                 <li><a href='#tb_experiment'>Experiment</a></li>
                 <li><a href='#tb_variableset'>Variableset</a></li>
                 <li><a href='#tb_datafile'>Datafile</a></li>
+                <li><a href='#tb_config'>Config</a></li>
             </ul>
             <!-- Connection -->
             <div id="tb_connection" class="tb_connection">
@@ -162,6 +186,11 @@
                 Close</button>
                 </span>
             </div>
+            <div id="tb_config" class="tb_config">
+                <span>Config:
+                <a href="javascript:Mercury.trigger('toggle:interface')">Edit</a>
+                </span>
+            </div>
         </div> <!-- toolbar -->
         <!--
         <div class="registrar">
@@ -172,25 +201,39 @@
             </span>
         </div>
         -->
-        <div class="controls">
-        </div>
-        <span data-bind="text: vars().length"></span>
-        <div class="variables">
-            <table>
-                <thead><tr>
-                        <th>Name</th><th>Latest</th>
-                </tr></thead>
-                <tbody data-bind="foreach: vars">
-                    <tr>
-                        <td data-bind="text: name"></td>
-                        <td data-bind="text: latest().value"</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="graphs">
-        </div>
+        <div id="display" class="toolbar">
+            <ul>
+                <li><a href='#disp_variables'>Variables</a></li>
+                <li><a href='#disp_controls'>Controls</a></li>
+                <li><a href='#disp_graphs'>Graphs</a></li>
+            </ul>
+            <div id="disp_variables" class="disp_variables">
+                <table>
+                    <thead><tr>
+                            <th>Name</th><th>Latest</th>
+                    </tr></thead>
+                    <tbody data-bind="foreach: vars">
+                        <tr>
+                            <td data-bind="text: name"></td>
+                            <td data-bind="text: latest().value"</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="disp_controls" class="disp_controls mercury-region" data-mercury="full">
+                {% if (content != {}) and ('controls' in content) and ('value' in content['controls']) %}
+                    {{ content['controls']['value']|safe }}
+                {% endif %}
+            </div>
+            <div id="disp_graphs" class="disp_graphs mercury-region" data-mercury="full">
+                {% if (content != {}) and ('graphs' in content) and ('value' in content['graphs']) %}
+                    {{ content['graphs']['value']|safe }}
+                {% endif %}
+            </div>
     </div>
     <div id="filetree" title="Select a file"></div>
+    <script>
+        $(parent).trigger('initialize:frame');
+    </script>
 </body>
 </html>

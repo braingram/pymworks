@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="us">
+<head>
+	<meta charset="utf-8">
+    <title>Mercury test</title>
+    <script type="text/javascript" src="{{ url_for('mercury.static', filename='js/mercury_loader.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('mercury.static', filename='js/jquery-1.7.js') }}"></script>
+    <script>
+        $(window).bind('mercury:ready', function () {
+            {% if (content != {}) and ('test_edit' in content) and ('snippets' in content['test_edit']) %}
+            var raw_snippets = {{ content['test_edit']['snippets']|tojson|safe }};
+            //console.log(raw_snippets);
+            snippets = Mercury.Snippet.load(raw_snippets);
+            {% else %}
+            console.log("No snippets provided");
+            {% endif %}
+            });
+    </script>
+</head>
+<body class="home">
+    <a href="javascript:Mercury.trigger('toggle:interface')">Edit</a>
+    <div id="test_edit" data-mercury="full" class="mercury-region">
+        {% if (content != {}) and ('test_edit' in content) and ('value' in content['test_edit']) %}
+            {{ content['test_edit']['value']|safe }}
+        {% else %}
+            <p></p>
+        {% endif %}
+    </div>
+    <script>
+        $(parent).trigger('initialize:frame');
+    </script>
+</body>
+</html>

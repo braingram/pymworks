@@ -350,6 +350,15 @@ mworks.client = (function () {
         return $.map(client.vars(), function (v) { return v.name; });
     };
 
+    client.varbyname = function (name) {
+        for (vi in client.vars()) {
+            if (client.vars()[vi].name() == name) {
+                return client.vars()[vi];
+            };
+        };
+        client.throw("Failed to find variable with name " + name);
+    };
+
     /*
     client.varbyname = function (name) {
         matches = client.vars().filter( function (v) { return v.name == name; });
@@ -430,6 +439,11 @@ mworks.client = (function () {
     };
 
     client.send_event = function(key, value) {
+        /*
+        if (typeof(value) == 'boolean') {
+            value = value ? 1: 0;
+        };
+        */
         client.require_socket();
         client.require_connected();
         client.socket.emit('event', {key: key, value: value});
