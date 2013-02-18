@@ -110,6 +110,8 @@ class EventStream(Stream):
         return int(pytime.time() * 1E6 + self.tdelay)
 
     def make_event(self, key, value, time=None):
+        if isinstance(key, unicode):
+            key = str(key)
         if isinstance(key, str):
             key = self.to_code(key)
         time = self.now() if time is None else time
