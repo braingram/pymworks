@@ -1,0 +1,1 @@
+<div data-bind="with: client.varbyname('{{ data['variable'] }}')"><input class="control_spin" type="number" min="{{ data['min']|default(0.0) }}" max="{{ data['max']|default(1.0) }}" step="{{ data['step']|default(0.01) }}" value="{{ data['value']|default(0.0) }}" data-bind="value: latest_value"/></div>

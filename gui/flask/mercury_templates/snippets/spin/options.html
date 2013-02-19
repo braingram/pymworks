@@ -2,27 +2,27 @@
     <div class="form-inputs mercury-display-pane-container">
 
     <fieldset>
-      <div class="control-group string optional">
-        <label class="string optional control-label" for="options_first_name">First Name</label>
+      <div class="control-group string">
+        <label class="string control-label" for="options_variable">Variable</label>
         <div class="controls">
-          <input class="span6 string optional" id="options_first_name" name="first_name" size="50" type="text" value="first name">
+          <input class="span6 string optional" id="options_variable" name="variable" size="50" type="text" value="variable"/>
         </div>
       </div>
-    </fieldset>
+      </fieldset>
 
     <fieldset>
-      <legend>Options</legend>
-      <div class="control-group string optional">
-        <label class="string optional control-label" for="options_favorite_beer">Favorite Beer</label>
-        <div class="controls">
-          <input class="span6 string optional" id="options_favorite_beer" name="favorite_beer" size="50" type="text" value="favorite beer">
+        <legend>Options</legend>
+        <div class="control-group numeric">
+            <label class="numeric optional control-label" for="options_min">Min</label>
+            <div class="controls">
+                <input class="span6 numeric optional" id="options_min" name="min" size="50" type="number" value="0.0"/>
+            </div>
         </div>
-      </div>
     </fieldset>
 
   </div>
 
   <div class="form-actions mercury-display-controls">
-    <input class="btn btn-primary" name="commit" type="submit" value="Insert Snippet"/>
+    <input class="btn btn-primary" name="commit" type="submit" value="Insert Spinbox"/>
 </div>
 </form>

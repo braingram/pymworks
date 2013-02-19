@@ -85,25 +85,25 @@
                             snippet = snippets[sni];
                             console.log({snippets: snippets, sni: sni, snippet: snippet});
                             // get snippet version & name
-                            name = snippet.attributes['data-snippet'];
-                            version = snippet.attributes['data-version'];
-                            if (current_nodes.hasOwnProperty(name)) {
-                                current_nodes[name][version] = snippet;
-                            } else {
-                                current_nodes[name] = {version: snippet};
+                            name = snippet.attributes['data-snippet'].textContent;
+                            version = snippet.attributes['data-version'].textContent;
+                            if (!(current_nodes.hasOwnProperty(name))) {
+                                current_nodes[name] = {};
                             };
+                            current_nodes[name][version] = snippet;
                         };
                     };
                     console.log({nodes: nodes, current_nodes: current_nodes});
                     // bindings = $('[data-bind]', snippet);
 
                     // find new, changed, and removed
+                    failed = {};
                     for (current_name in current_nodes) {
                         if (current_name in nodes) {
                             versions = Object.keys(current_nodes[current_name]);
                             if (versions.length != 1) {
-                                throw {error: "Expected versions.length of 1",
-                                    versions: versions, name: current_name};
+                                console.log({error: "Expected versions.length of 1",
+                                    versions: versions, name: current_name});
                             };
                             version = versions[0];
                             if (version in nodes[current_name]) {
@@ -114,27 +114,44 @@
                                 current_node = current_nodes[current_name][version];
                                 versions = Object.keys(nodes[current_name]);
                                 if (versions.length != 1) {
-                                    throw {error: "Expected versions.length of 1",
-                                        versions: versions, name: current_name};
+                                    console.log({error: "Expected versions.length of 1",
+                                        versions: versions, name: current_name});
                                 };
                                 old_node = nodes[current_name][versions[0]];
                                 console.log({msg: 'Found modification', current: current_node, old: old_node});
                                 $(old_node).unbind('*');
                                 ko.cleanNode(old_node);
                                 ko.removeNode(old_node);
-                                ko.applyBindings(client, current_node);
+                                try {
+                                    ko.applyBindings(client, current_node);
+                                } catch (error) {
+                                    console.log({msg: "failed to bind node", node: current_node, client: client});
+                                    if (!(failed.hasOwnProperty(current_name))) {
+                                        failed[current_name] = {};
+                                    };
+                                    failed[current_name][versions[0]] = old_node;
+                                };
                             };
                         } else {
                             // NEW, brand new node, apply bindings
                             versions = Object.keys(current_nodes[current_name]);
                             if (versions.length != 1) {
-                                throw {error: "Expected versions.length of 1",
-                                    versions: versions, name: current_name};
+                                console.log({error: "Expected versions.length of 1",
+                                    versions: versions, name: current_name});
                             };
                             version = versions[0];
                             current_node = current_nodes[current_name][version];
                             console.log({msg: 'Found addition', current: current_node});
-                            ko.applyBindings(client, current_node);
+                            if (client.connected()) {
+                                ko.applyBindings(client, current_node);
+                            } else {
+                                console.log({msg: "skipping binding, client not connected",
+                                    node: current_node, client: client});
+                                if (!(failed.hasOwnProperty(current_name))) {
+                                    failed[current_name] = {};
+                                };
+                                failed[current_name][version] = current_node;
+                            };
                         };
                     };
 
@@ -144,8 +161,8 @@
                             // REMOVED, unbind and remove
                             versions = Object.keys(nodes[name]);
                             if (versions.length != 1) {
-                                throw {error: "Expected versions.length of 1",
-                                    versions: versions, name: name};
+                                console.log({error: "Expected versions.length of 1",
+                                    versions: versions, name: name});
                             };
                             version = versions[0];
                             node = nodes[name][version];
@@ -156,9 +173,19 @@
                         };
                     };
 
+                    // don't store failed bindings
+                    for (n in failed) {
+                        for (v in failed[n]) {
+                            if ((n in current_nodes) & (v in current_nodes[n])) {
+                                console.log({msg: 'removing failed', node: current_nodes[n][v]});
+                                delete current_nodes[n][v];
+                                delete current_nodes[n];
+                            };
+                        };
+                    };
                     // update nodes
-                    //delete nodes;
                     nodes = current_nodes;
+                    console.log({nodes: nodes, current_nodes: current_nodes});
                 };
             });
         });
@@ -201,7 +228,8 @@
                 throw msg;
             };
             // must be done AFTER redefining select_experiment :-/ 
-            ko.applyBindings(client);
+            ko.applyBindings(client, $('#toolbar').get(0));
+            ko.applyBindings(client, $('#disp_variables').get(0));
         });
     </script>
 </head>
