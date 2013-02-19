@@ -55,7 +55,32 @@
             
             snippets = Mercury.Snippet.load(snippets);
             console.log("No snippets provided");
+
+            // attach a callback to reapply bindings to controls and graphs
+            // areas after they are modified
+            Mercury.on('mode', function (event, options) {
+                if (options.mode == 'preview') {
+                    console.log({f: 'Mercury.on("mode")', options: options, event: event});
+                    nodes = ['#disp_controls', '#disp_graphs'];
+                    console.log('nodes');
+                    console.log({nodes: nodes});
+                    for (ni in nodes) {
+                        subnodes = $(nodes[ni]).find('*');
+                        console.log('subnodes');
+                        console.log({subnodes: subnodes});
+                        for (si in subnodes) {
+                            console.log('unbinding subnode');
+                            //$(subnodes[si]).unbind('*');  // removes ALL jquery events
+                            console.log('cleaning subnode');
+                            ko.cleanNode(subnodes[si]);  // removes knockout internal stuff
+                        }
+                        console.log('reapplying bindings');
+                        console.log($(nodes[ni]).get(0));
+                        ko.applyBindings(client, $(nodes[ni]).get(0));  // reapply bindings
+                    };
+                };
             });
+        });
 
         $(document).ready(function () {
             console.log("document ready");
