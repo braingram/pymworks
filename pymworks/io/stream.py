@@ -114,6 +114,8 @@ class EventStream(Stream):
             key = str(key)
         if isinstance(key, str):
             key = self.to_code(key)
+        if isinstance(value, bool):
+            value = int(value)
         time = self.now() if time is None else time
         return Event(key, time, value, name=self.to_name(key))
 
