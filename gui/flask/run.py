@@ -17,6 +17,7 @@ Write
 - connect/disconnect/reconnect (like generic Stream)
 """
 
+import json
 import logging
 logging.basicConfig(level=logging.DEBUG)
 import os
@@ -54,13 +55,39 @@ def dfilter(d):
 _, app = flask_filetree.make_blueprint(register=True, app=app,
         fnfilter=fnfilter, dfilter=dfilter)
 tdir = os.path.realpath('mercury_templates')
+store = flask_mercury.storage.FlatfileStore()
 _, app = flask_mercury.make_blueprint(register=True, app=app,
-        template_dir=tdir)
+        template_dir=tdir, store=store)
 
 
-@app.route('/')
+@app.route('/', methods=['GET', 'PUT'])
 def default():
-    return flask.render_template("test_client.html")
+    # TODO make key flexible (experiment based?)
+    key = 'default'
+    if flask.request.method == 'GET':
+        content = {}
+        try:
+            content = store.load(key)
+        except Exception as E:
+            print "failed to load page data: %s" % E
+
+        page = flask.render_template("test_client.html", content=content)
+        stext = ""
+        for rk in content:
+            for si in content[rk]['snippets']:
+                skey = '[%s/1]' % si
+                snippet = content[rk]['snippets'][si]
+                stext = flask.render_template('/snippets/%s/preview.html' \
+                        % snippet['name'], data=snippet)
+                page = page.replace(skey, stext)
+        return page
+    else:
+        data = json.loads(flask.request.data)
+        try:
+            store.save(key, data['content'])
+        except Exception as E:
+            print "failed to save page data: %s" % E
+        return flask.jsonify(data)
 
 
 @app.route('/t/<template>')

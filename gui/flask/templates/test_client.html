@@ -40,14 +40,14 @@
 
         
         $(window).bind('mercury:ready', function () {
-            {% if (content != {}) and ('controls' in content) and ('snippets' in content['controls']) %}
-            snippets = {{ content['controls']['snippets']|tojson|safe }};
+            {% if (content != {}) and ('disp_controls' in content) and ('snippets' in content['disp_controls']) %}
+            snippets = {{ content['disp_controls']['snippets']|tojson|safe }};
             {% else %}
             snippets = {};
             {% endif %}
             
-            {% if (content != {}) and ('graphs' in content) and ('snippets' in content['graphs']) %}
-            other_snippets = {{ content['graphs']['snippets']|tojson|safe }};
+            {% if (content != {}) and ('disp_graphs' in content) and ('snippets' in content['disp_graphs']) %}
+            other_snippets = {{ content['disp_graphs']['snippets']|tojson|safe }};
             for (k in other_snippets) {
                 snippets[k] = other_snippets[k];
             };
@@ -323,13 +323,13 @@
                 </table>
             </div>
             <div id="disp_controls" class="disp_controls mercury-region" data-mercury="full">
-                {% if (content != {}) and ('controls' in content) and ('value' in content['controls']) %}
-                    {{ content['controls']['value']|safe }}
+                {% if (content != {}) and ('disp_controls' in content) and ('value' in content['disp_controls']) %}
+                    {{ content['disp_controls']['value']|safe }}
                 {% endif %}
             </div>
             <div id="disp_graphs" class="disp_graphs mercury-region" data-mercury="full">
-                {% if (content != {}) and ('graphs' in content) and ('value' in content['graphs']) %}
-                    {{ content['graphs']['value']|safe }}
+                {% if (content != {}) and ('disp_graphs' in content) and ('value' in content['disp_graphs']) %}
+                    {{ content['disp_graphs']['value']|safe }}
                 {% endif %}
             </div>
     </div>
