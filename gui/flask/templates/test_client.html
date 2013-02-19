@@ -77,9 +77,13 @@
                     // get current nodes
                     for (si in selectors) {
                         selector = selectors[si];
-                        snippets = $(selector).find('[data-snippet']);
-                        for (sni in snippets) {
+                        snippets = $(selector).find('[data-snippet]');
+                        if (snippets.length == 0) {
+                            continue;
+                        };
+                        for (var sni=0; sni < snippets.length; sni++) {
                             snippet = snippets[sni];
+                            console.log({snippets: snippets, sni: sni, snippet: snippet});
                             // get snippet version & name
                             name = snippet.attributes['data-snippet'];
                             version = snippet.attributes['data-version'];
@@ -90,35 +94,78 @@
                             };
                         };
                     };
+                    console.log({nodes: nodes, current_nodes: current_nodes});
+                    // bindings = $('[data-bind]', snippet);
 
                     // find new, changed, and removed
                     for (current_name in current_nodes) {
                         if (current_name in nodes) {
                             versions = Object.keys(current_nodes[current_name]);
                             if (versions.length != 1) {
-                                throw {error: "Expected versions.length of 1", versions: versions, name: current_name};
+                                throw {error: "Expected versions.length of 1",
+                                    versions: versions, name: current_name};
                             };
                             version = versions[0];
-                            node = current_nodes[current_name][version];
-                            // check if node is in nodes, if not, it's new
-                        };
-                    };
-                            if (name in nodes) {
-                                if (version in nodes[name]) {
-                                    // do nothing?
-                                } else {
-                                    // rebind & restore
-                                };
+                            if (version in nodes[current_name]) {
+                                // OLD
+                                // this is an old node (do nothing)
+                                continue;
                             } else {
-                                // bind & store
+                                // MODIFIED
+                                // this is a modifed version of an old node
+                                // clean up old node
+                                // apply bindings to node
+                                current_node = current_nodes[current_name][version];
+                                versions = Object.keys(nodes[current_name]);
+                                if (versions.length != 1) {
+                                    throw {error: "Expected versions.length of 1",
+                                        versions: versions, name: current_name};
+                                };
+                                old_node = nodes[current_name][versions[0]];
+                                console.log({msg: 'Found modification', current: current_node, old: old_node});
+                                $(old_node).unbind('*');
+                                ko.cleanNode(old_node);
+                                ko.removeNode(old_node);
+                                ko.applyBindings(client, current_node);
                             };
-                            // get bindings
-                            bindings = $('[data-bind]', snippet);
-                            for (bi in bindings) {
-                                // bound?
+                        } else {
+                            // NEW
+                            // this is a brand new node
+                            // apply bindings to it
+                            versions = Object.keys(current_nodes[current_name]);
+                            if (versions.length != 1) {
+                                throw {error: "Expected versions.length of 1",
+                                    versions: versions, name: current_name};
                             };
+                            version = versions[0];
+                            current_node = current_nodes[current_name][version];
+                            console.log({msg: 'Found addition', current: current_node});
+                            ko.applyBindings(client, current_node);
                         };
                     };
+
+                    // REMOVED check for removed nodes
+                    for (name in nodes) {
+                        if (!(name in current_nodes)) {
+                            // REMOVED
+                            // unbind & remove node
+                            versions = Object.keys(nodes[name]);
+                            if (versions.length != 1) {
+                                throw {error: "Expected versions.length of 1",
+                                    versions: versions, name: name};
+                            };
+                            version = versions[0];
+                            node = nodes[name][version];
+                            console.log({msg: 'Found removal', old: node});
+                            $(node).unbind('*');
+                            ko.cleanNode(node);
+                            ko.removeNode(node);
+                        };
+                    };
+
+                    // update nodes
+                    //delete nodes;
+                    nodes = current_nodes;
                     /*
                     console.log({f: 'Mercury.on("mode")', options: options, event: event});
                     nodes = ['#disp_controls', '#disp_graphs'];
@@ -149,6 +196,7 @@
 
         $(document).ready(function () {
             console.log("document ready");
+            // TODO check if this is an iframe
             client = mworks.client();
             client.connect_socket();
             // need to template the toolbar, and other tags that require id
