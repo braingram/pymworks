@@ -49,12 +49,22 @@ mworks.variable = function (name, send_event) {
     variable.events = ko.observableArray();
     variable.n = 1;
 
+    variable.latest_value = ko.computed({
+        read: function () {
+            return variable.events().length ? variable.events()[variable.events().length - 1].value : null;
+        },
+        write: function (value) {
+            send_event(variable.name(), value);
+        },
+        owner: this
+    });
+
     variable.latest = ko.computed({
         read: function () {
             return variable.events().length ? variable.events()[variable.events().length - 1] : {value: null};
         },
         write: function (value) {
-            send_event(variable.name, value);
+            send_event(variable.name(), value);
         },
         owner: this
     });
@@ -439,11 +449,6 @@ mworks.client = (function () {
     };
 
     client.send_event = function(key, value) {
-        /*
-        if (typeof(value) == 'boolean') {
-            value = value ? 1: 0;
-        };
-        */
         client.require_socket();
         client.require_connected();
         client.socket.emit('event', {key: key, value: value});

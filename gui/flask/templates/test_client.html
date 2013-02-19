@@ -58,8 +58,68 @@
 
             // attach a callback to reapply bindings to controls and graphs
             // areas after they are modified
+            selectors = ['#disp_controls', '#disp_graphs']
+            nodes = {};  // indexed by ['snippet_name']['snippet_version'] = dom node
             Mercury.on('mode', function (event, options) {
-                if (options.mode == 'preview') {
+                if ((options.mode == 'preview') & (document.readyState == 'complete')) {
+                    // check if nodes need updating
+                    // things to check
+                    // - if a node has not been bound, bind it (look for __ko__....
+                    // - if a node has changed (snippet version), clean then rebind
+                    // - if a node has been removed, clean the dom
+
+                    // this requires storing
+                    // - dom node reference (for snippet contents? to clean/remove)
+                    // - snippet version (& name)
+
+                    // find nodes that may need binding in '#disp_controls' and '#disp_graphs'
+                    current_nodes = {};
+                    // get current nodes
+                    for (si in selectors) {
+                        selector = selectors[si];
+                        snippets = $(selector).find('[data-snippet']);
+                        for (sni in snippets) {
+                            snippet = snippets[sni];
+                            // get snippet version & name
+                            name = snippet.attributes['data-snippet'];
+                            version = snippet.attributes['data-version'];
+                            if (current_nodes.hasOwnProperty(name)) {
+                                current_nodes[name][version] = snippet;
+                            } else {
+                                current_nodes[name] = {version: snippet};
+                            };
+                        };
+                    };
+
+                    // find new, changed, and removed
+                    for (current_name in current_nodes) {
+                        if (current_name in nodes) {
+                            versions = Object.keys(current_nodes[current_name]);
+                            if (versions.length != 1) {
+                                throw {error: "Expected versions.length of 1", versions: versions, name: current_name};
+                            };
+                            version = versions[0];
+                            node = current_nodes[current_name][version];
+                            // check if node is in nodes, if not, it's new
+                        };
+                    };
+                            if (name in nodes) {
+                                if (version in nodes[name]) {
+                                    // do nothing?
+                                } else {
+                                    // rebind & restore
+                                };
+                            } else {
+                                // bind & store
+                            };
+                            // get bindings
+                            bindings = $('[data-bind]', snippet);
+                            for (bi in bindings) {
+                                // bound?
+                            };
+                        };
+                    };
+                    /*
                     console.log({f: 'Mercury.on("mode")', options: options, event: event});
                     nodes = ['#disp_controls', '#disp_graphs'];
                     console.log('nodes');
@@ -69,15 +129,20 @@
                         console.log('subnodes');
                         console.log({subnodes: subnodes});
                         for (si in subnodes) {
+                            console.log(subnodes[si]);
                             console.log('unbinding subnode');
-                            //$(subnodes[si]).unbind('*');  // removes ALL jquery events
+                            $(subnodes[si]).unbind('*');  // removes ALL jquery events
                             console.log('cleaning subnode');
                             ko.cleanNode(subnodes[si]);  // removes knockout internal stuff
                         }
+                        $(nodes[ni]).unbind('*');
+                        ko.cleanNode($(nodes[ni]));
                         console.log('reapplying bindings');
-                        console.log($(nodes[ni]).get(0));
-                        ko.applyBindings(client, $(nodes[ni]).get(0));  // reapply bindings
+                        //console.log($(nodes[ni]).get(0));
+                        console.log($(nodes[ni]));
+                        ko.applyBindings(client, $(nodes[ni]));  // reapply bindings
                     };
+                    */
                 };
             });
         });
@@ -240,7 +305,7 @@
                     <tbody data-bind="foreach: vars">
                         <tr>
                             <td data-bind="text: name"></td>
-                            <td data-bind="text: latest().value"</td>
+                            <td data-bind="text: latest_value"</td>
                         </tr>
                     </tbody>
                 </table>
