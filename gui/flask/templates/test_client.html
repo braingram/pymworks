@@ -107,14 +107,10 @@
                             };
                             version = versions[0];
                             if (version in nodes[current_name]) {
-                                // OLD
-                                // this is an old node (do nothing)
+                                // OLD, do nothing
                                 continue;
                             } else {
-                                // MODIFIED
-                                // this is a modifed version of an old node
-                                // clean up old node
-                                // apply bindings to node
+                                // MODIFIED, clean up old, apply new
                                 current_node = current_nodes[current_name][version];
                                 versions = Object.keys(nodes[current_name]);
                                 if (versions.length != 1) {
@@ -129,9 +125,7 @@
                                 ko.applyBindings(client, current_node);
                             };
                         } else {
-                            // NEW
-                            // this is a brand new node
-                            // apply bindings to it
+                            // NEW, brand new node, apply bindings
                             versions = Object.keys(current_nodes[current_name]);
                             if (versions.length != 1) {
                                 throw {error: "Expected versions.length of 1",
@@ -144,11 +138,10 @@
                         };
                     };
 
-                    // REMOVED check for removed nodes
+                    // check for removed nodes
                     for (name in nodes) {
                         if (!(name in current_nodes)) {
-                            // REMOVED
-                            // unbind & remove node
+                            // REMOVED, unbind and remove
                             versions = Object.keys(nodes[name]);
                             if (versions.length != 1) {
                                 throw {error: "Expected versions.length of 1",
@@ -166,37 +159,17 @@
                     // update nodes
                     //delete nodes;
                     nodes = current_nodes;
-                    /*
-                    console.log({f: 'Mercury.on("mode")', options: options, event: event});
-                    nodes = ['#disp_controls', '#disp_graphs'];
-                    console.log('nodes');
-                    console.log({nodes: nodes});
-                    for (ni in nodes) {
-                        subnodes = $(nodes[ni]).find('*');
-                        console.log('subnodes');
-                        console.log({subnodes: subnodes});
-                        for (si in subnodes) {
-                            console.log(subnodes[si]);
-                            console.log('unbinding subnode');
-                            $(subnodes[si]).unbind('*');  // removes ALL jquery events
-                            console.log('cleaning subnode');
-                            ko.cleanNode(subnodes[si]);  // removes knockout internal stuff
-                        }
-                        $(nodes[ni]).unbind('*');
-                        ko.cleanNode($(nodes[ni]));
-                        console.log('reapplying bindings');
-                        //console.log($(nodes[ni]).get(0));
-                        console.log($(nodes[ni]));
-                        ko.applyBindings(client, $(nodes[ni]));  // reapply bindings
-                    };
-                    */
                 };
             });
         });
 
         $(document).ready(function () {
             console.log("document ready");
-            // TODO check if this is an iframe
+            if (window.self === window.top) {
+                // check if this is an iframe
+                console.log("document was in iframe, skipping...");
+                return;
+            };
             client = mworks.client();
             client.connect_socket();
             // need to template the toolbar, and other tags that require id
@@ -330,15 +303,6 @@
                 </span>
             </div>
         </div> <!-- toolbar -->
-        <!--
-        <div class="registrar">
-            <span>Register Variable:
-                <form data-bind="submit: function (item) { client.register($('.variable', item)[0].value); }, eventBubble: false">
-                    <input class="variable"></input>
-                </form>
-            </span>
-        </div>
-        -->
         <div id="display" class="toolbar">
             <ul>
                 <li><a href='#disp_variables'>Variables</a></li>
