@@ -35,17 +35,17 @@ def make_time_test(time_range, to_code):
         return lambda e: True
     else:
         if not isinstance(time_range, (tuple, list)):
-            raise ValueError("time_range must be tuple or list: %s" \
-                    % time_range)
+            raise ValueError("time_range must be tuple or list: %s"
+                             % time_range)
         if len(time_range) != 2:
-            raise ValueError("time_range must be len == 2: %s" % \
-                    len(time_range))
+            raise ValueError("time_range must be len == 2: %s" %
+                             len(time_range))
         return lambda e: time_range[0] < e.time < time_range[1]
 
 
 def make_tests(key, time_range, to_code):
     return make_key_test(key, to_code), \
-            make_time_test(time_range, to_code)
+        make_time_test(time_range, to_code)
 
 
 def resolve_filename(filename):
@@ -77,7 +77,14 @@ def resolve_filename(filename):
 class DataFile(Source):
     def __init__(self, filename, autoconnect=True, autoresolve=True):
         Source.__init__(self, autoconnect=False)
-        self.filename = resolve_filename(filename) if autoresolve else filename
+        if hasattr(filename, 'read'):
+            # this is actually a file pointer
+            self.file = filename
+            self.filename = None
+        else:
+            self.filename = resolve_filename(filename) if autoresolve \
+                else filename
+            self.file = None
         if autoconnect:
             self.connect()
         # for backwards compatibility
@@ -86,7 +93,8 @@ class DataFile(Source):
     def connect(self):
         if self._connected:
             return
-        self.file = open(self.filename, 'rb')
+        if self.file is None:
+            self.file = open(self.filename, 'rb')
         self.ldo = LDOBinary.LDOBinaryUnmarshaler(self.file)
         #self.file.seek(0)
         #self.ldo.read_stream_handler = 0
@@ -133,7 +141,7 @@ class DataFile(Source):
             return None
         except TypeError:
             logging.warning("Event before %i was missing required code, "
-                    "time, and/or value" % self.file.tell())
+                            "time, and/or value" % self.file.tell())
             return None
 
     def write_event(self):
@@ -160,9 +168,27 @@ class IndexedDataFile(DataFile):
         key = event code
         value = file locations of events
     """
-    def __init__(self, filename, autoconnect=True, autoresolve=True):
-        DataFile.__init__(self, filename, autoconnect=False, \
-                autoresolve=autoresolve)
+    def __init__(self, filename, autoconnect=True, autoresolve=True,
+                 index=None):
+        DataFile.__init__(self, filename, autoconnect=False,
+                          autoresolve=autoresolve)
+        if index is not None:
+            if hasattr(index, 'read'):
+                self.index_file = index
+                self.index_filename = None
+            else:
+                self.index_filename = index
+                if os.path.exists(index):
+                    self.index_file = open(index, 'rb')
+                else:
+                    self.index_file = index  # will trigger indexing
+        else:
+            self.index_filename = '%s/.%s.index' % \
+                os.path.split(os.path.realpath(self.filename))
+            if os.path.exists(self.index_filename):
+                self.index_file = open(self.index_filename, 'rb')
+            else:
+                self.index_file = self.index_filename
         if autoconnect:
             self.connect()
 
@@ -174,32 +200,22 @@ class IndexedDataFile(DataFile):
 
     def _load_index(self):
         """ Load index from files """
-        index_filename = '%s/.%s.index' % \
-                os.path.split(os.path.realpath(self.filename))
-        if os.path.exists(index_filename):
-            try:
-                with open(index_filename, 'rb') as index_file:
-                    self._index = pickle.load(index_file)
-                    if type(self._index) != dict:
-                        wrong_type = type(self._index)
-                        raise TypeError("loaded index(%s) was "
-                                "wrong type: %s" % \
-                                        (index_filename, str(wrong_type)))
-                    self._parse_index()
-                    file_hash = self._hash_file()
-                    if self._hash != file_hash:
-                        logging.debug("File hashes did not match")
-                        raise Exception("File hash[%s] != stored hash[%s]" % \
+        try:
+            self._index = pickle.load(self.index_file)
+            if type(self._index) != dict:
+                raise TypeError("loaded index(%s) was wrong type: %s" %
+                                (self.index_file, type(self._index)))
+            self._parse_index()
+            file_hash = self._hash_file()
+            if self._hash != file_hash:
+                raise Exception("File hash[%s] != stored hash[%s]" %
                                 (self._hash, file_hash))
-            except Exception as E:
-                logging.warning("Failed to load index file(%s): %s" % \
-                        (index_filename, str(E)))
-                self._index_file(index_filename)
-        else:
-            logging.debug("Index file(%s) did not exist" % index_filename)
-            self._index_file(index_filename)
+        except Exception as E:
+            logging.warning("Failed to load index file(%s)[%s]: %s" %
+                            (self.index_file, self.index_filename, E))
+            self._index_file()
 
-    def _index_file(self, index_filename):
+    def _index_file(self):
         """ Create an index of the file """
         self.require_connected()
         logging.info("indexing file: %s" % self.filename)
@@ -220,19 +236,24 @@ class IndexedDataFile(DataFile):
                 self._index[code] = []
 
         # get codec and time ranges
-        self._index.update({ \
-                '_codec': self.codec, \
-                '_mintime': self._mintime, \
-                '_maxtime': self._maxtime, \
-                '_hash': self._hash_file(), \
-                })
+        self._index.update({
+            '_codec': self.codec,
+            '_mintime': self._mintime,
+            '_maxtime': self._maxtime,
+            '_hash': self._hash_file(),
+        })
 
         self._parse_index()
         self._index['_hash'] = self._hash
+        self._save_index(self.index_file)
 
-        # save index to file
-        with open(index_filename, 'wb') as index_file:
-            pickle.dump(self._index, index_file, 2)
+    def _save_index(self, f):
+        if not hasattr(f, 'write'):
+            with open(f, 'wb') as f:
+                # save index to file
+                pickle.dump(self._index, f, 2)
+        else:
+            pickle.dump(self._index, f, 2)
 
     def _parse_index(self):
         self._hash = self._index['_hash']
@@ -264,8 +285,8 @@ class IndexedDataFile(DataFile):
         if not isinstance(codes, (tuple, list)):
             codes = [codes, ]
         events = []
-        indices = reduce(lambda x, y: x + y, \
-                [self._index[code] for code in codes])
+        indices = reduce(lambda x, y: x + y,
+                         [self._index[code] for code in codes])
         for i in sorted(indices):
             e = self._event_at(i)
             if tt(e):
@@ -276,12 +297,16 @@ class IndexedDataFile(DataFile):
 class DataFileWriter(Sink):
     def __init__(self, filename, autoconnect=True):
         Sink.__init__(self, autoconnect=False)
-        self.filename = filename
+        if hasattr(filename, 'write'):
+            self.file = filename
+            self.filename = None
+        else:
+            self.filename = filename
+            self.file = open(self.filename, 'wb')
         if autoconnect:
             self.connect()
 
     def connect(self):
-        self.file = open(self.filename, 'wb')
         self.ldo = LDOBinary.LDOBinaryMarshaler(self.file)
         self.ldo.m_init()
         Sink.connect(self)
@@ -296,7 +321,19 @@ class DataFileWriter(Sink):
         self.ldo._marshal([event.code, event.time, event.value])
 
 
-def open_file(fn, indexed=True):
+def open_file(fn, indexed=True, index=None):
     if indexed:
-        return IndexedDataFile(fn)
+        return IndexedDataFile(fn, index=index)
     return DataFile(fn)
+
+
+def save_file(mwks, filename, index=None):
+    w = DataFileWriter(filename)
+    mwks.restart_file()
+    e = mwks.read_event()
+    while e is not None:
+        w.write_event(e)
+        e = mwks.read_event()
+    if (index is not None) and hasattr(mwks, '_save_index'):
+        mwks._save_index(index)
+    w.disconnect()
