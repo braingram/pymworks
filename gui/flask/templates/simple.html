@@ -22,9 +22,19 @@
 
     <link href="{{ url_for('filetree.static', filename='css/jqueryFileTree.css') }}" rel="stylesheet"></link>
 
+    <script type="text/javascript"
+        src="{{ url_for('static', filename='js/d3.v2.js') }}"></script>
+    <script type="text/javascript"
+        src="{{ url_for('static', filename='js/nv.d3.min.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/nv.d3.css') }}" />
+
     <style>
         body {
             font: 62.5% "Trebuchet MS", sans-serif;
+        }
+
+        #chart {
+            height: 500px;
         }
         
         .control_column {
@@ -44,6 +54,102 @@
         $.pnotify.defaults.styling = "jqueryui";
         var client; // make this global
 
+        var graphdata = [
+            {'key': 'correct_lick', 'values': []},
+            {'key': 'correct_ignore', 'values': []},
+            {'key': 'bad_lick', 'values': []},
+            {'key': 'bad_ignore', 'values': []},
+        ];
+
+        var chart;
+
+        function getvalue(data, di, index) {
+            if (index >= data[di]['values'].length) {
+                return [false, data[di]['values'][data[di]['values'].length - 1]];
+            } else {
+                return [true, data[di]['values'][index]];
+            };
+        };
+
+        function redraw() {
+            // copy data
+            mi = 0;
+            inds = {};
+            cvs = {};
+            for (i in graphdata) {
+                vn = graphdata[i]['key']
+                vs = [];
+                v = client.varbyname(vn);
+                evs = v.events();
+                for (vi in evs) {
+                    // TODO value checking
+                    vs.push([evs[vi].time, evs[vi].value]);
+                };
+                graphdata[i]['values'] = vs.sort(function (a, b) { a[0] - b[0] });
+                mi = Math.max(mi, vs.length);
+                //inds[graphdata[i]['key']] = 0;
+                inds[i] = 0;
+                cvs[i] = [];
+            };
+            // prep data
+            alldone = false;
+            rs = {};
+            values = {};
+            while (!alldone) {
+                // get values for all data
+                mt = Infinity;
+                mdi = 0;
+                for (di in inds) {
+                    r = getvalue(graphdata, di, inds[di]);
+                    rs[di] = r[0];
+                    values[di] = r[1];
+                    // find one with lowest time
+                    if ((r[1][0] < mt) && (r[0])) {
+                        mt = r[1][0];
+                        mdi = di;
+                    };
+                };
+                alldone = true;
+                for (i in rs) {
+                    alldone = alldone && (!rs[i]);
+                };
+                if (alldone) {
+                    break;
+                };
+                // match all others to that
+                for (di in inds) {
+                    cvs[di].push([mt, values[di][1]]);
+                };
+                // increment that time for that one
+                inds[mdi] += 1;
+                alldone = true;
+                for (i in rs) {
+                    alldone = alldone && (!rs[i]);
+                };
+            };
+
+            for (di in cvs) {
+                graphdata[di]['values'] = cvs[di];
+            };
+
+            console.log(graphdata);
+            d3.select('#chart')
+                .datum(graphdata)
+              .transition().duration(500)
+                .call(chart);
+        };
+
+        function make_graphs() {
+            chart = nv.models.stackedAreaChart()
+                .x(function(d) { return d[0] })
+                .y(function(d) { return d[1] });
+            chart.xAxis.tickFormat(d3.format('i'));
+            chart.yAxis.tickFormat(d3.format('i'));
+            redraw();
+            nv.utils.windowResize(chart.update);
+            //window.setInterval(redraw, 1000);
+        };
+
         $(document).ready(function () {
             console.log("document ready");
 
@@ -54,7 +160,7 @@
             $('#display').tabs();
 
             $('#filetree').fileTree({
-                root: '~',
+                root: '~/Repositories/coxlab/protocols',
                 script: "{{ url_for('filetree.sfiles') }}",
             }, function (file) {
                 $('#filetree').dialog('close');
@@ -63,6 +169,7 @@
                 // TODO clean out old bindings?
                 ko.applyBindings(client, $('#disp_controls').get(0));
                 ko.applyBindings(client, $('#disp_graphs').get(0));
+                make_graphs();
             });
             $('#filetree').dialog({
                 autoOpen: false,
@@ -331,6 +438,7 @@
                 -->
             </div>
             <div id="disp_graphs" class="disp_graphs">
+                <svg id='chart'></svg>
             </div>
     </div>
     <div id="filetree" title="Select a file"></div>
