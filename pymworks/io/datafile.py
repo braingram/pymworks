@@ -169,9 +169,10 @@ class IndexedDataFile(DataFile):
         value = file locations of events
     """
     def __init__(self, filename, autoconnect=True, autoresolve=True,
-                 index=None):
+                 index=None, check_hash=True):
         DataFile.__init__(self, filename, autoconnect=False,
                           autoresolve=autoresolve)
+        self._check_hash = check_hash
         if index is not None:
             if hasattr(index, 'read'):
                 self.index_file = index
@@ -200,16 +201,19 @@ class IndexedDataFile(DataFile):
 
     def _load_index(self):
         """ Load index from files """
+        if self._check_hash and (self.index_filename is None):
+            raise ValueError("Cannot check has of unknown filename")
         try:
             self._index = pickle.load(self.index_file)
             if type(self._index) != dict:
                 raise TypeError("loaded index(%s) was wrong type: %s" %
                                 (self.index_file, type(self._index)))
             self._parse_index()
-            file_hash = self._hash_file()
-            if self._hash != file_hash:
-                raise Exception("File hash[%s] != stored hash[%s]" %
-                                (self._hash, file_hash))
+            if self._check_hash:
+                file_hash = self._hash_file()
+                if self._hash != file_hash:
+                    raise Exception("File hash[%s] != stored hash[%s]" %
+                                    (self._hash, file_hash))
         except Exception as E:
             logging.warning("Failed to load index file(%s)[%s]: %s" %
                             (self.index_file, self.index_filename, E))
