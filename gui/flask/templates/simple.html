@@ -26,6 +26,15 @@
         body {
             font: 62.5% "Trebuchet MS", sans-serif;
         }
+        
+        .control_column {
+            float: left;
+            min-width: 250px;
+        }
+
+        .multicolumn_block{
+            overflow: hidden;
+        }
     </style>
 
     <script type="text/javascript"
@@ -81,6 +90,32 @@
             // must be done AFTER redefining select_experiment :-/ 
             ko.applyBindings(client, $('#toolbar').get(0));
             ko.applyBindings(client, $('#disp_variables').get(0));
+
+            // parse var-binds
+            $('[var-bind]').each( function(index) {
+                node = $(this).get(0);
+                vb = node.attributes['var-bind'];
+                if (vb.value.indexOf(':') === -1) {
+                    bt = 'value';
+                    vn = vb.value;
+                } else {
+                    tokens = vb.value.split(':');
+                    bt = tokens[0];
+                    vn = tokens[1];
+                };
+                switch (bt) {
+                    case 'value':
+                        $(this).attr('data-bind', "with: client.varbyname('" + vn + "')");
+                        node.innerHTML = "<input class='control_input' value='' data-bind='value: latest_value'/>" + node.innerHTML;
+                        break;
+                    case 'check':
+                        $(this).attr('data-bind', "with: client.varbyname('" + vn + "')");
+                        node.innerHTML = "<input class='control_check' type='checkbox' value='' data-bind='checked: latest_value'/>" + node.innerHTML;
+                        break;
+                    default:
+                        client.throw("Invalid var-bind type: " + bt);
+                };
+            });
         });
     </script>
 </head>
@@ -204,144 +239,95 @@
             <div id="disp_controls" class="disp_controls">
                 <!-- example button control that sends most recent value -->
                 <button class="control_button" title="lick_output"
-                    onclick="client.send_event('lick_output', client.varbyname('lick_output).latest_value())">
+                    onclick="client.send_event('lick_output', client.varbyname('default_reward_amount').latest_value())">
                     lick_output</button>
+                <div var-bind="check:flag_head_sensing">Head Sensing</div>
                 <h1 class="control_heading">Basics</h1>
-                <div class="control_section">
-                    <table>
-                        <thead>
-                            <tr><th>Reward</th><th>Punishment</th><th>Timing</th><th>Stimuli</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <div data-bind="with: client.varbyname('flag_always_reward')">
-                                        <input class="control_check" type="checkbox"
-                                        value="" data-bind="checked: latest_value"/>
-                                        Always Reward
-                                    </div>
-                                </td>
-                                <td>
-                                    <div data-bind="with: client.varbyname('flag_punish_lick')">
-                                        <input class="control_check" type="checkbox"
-                                        value="" data-bind="checked: latest_value"/>
-                                        Punish Licking
-                                    </div>
-                                </td>
-                                <td>
-                                    <div data-bind="with: client.varbyname('flag_dim_target')">
-                                        <input class="control_check" type="checkbox"
-                                        value="" data-bind="checked: latest_value"/>
-                                        Dim Target
-                                    </div>
-                                </td>
-                                <td>
-                                    <div data-bind="with: client.varbyname('targetprob')">
-                                        <input class="control_input"
-                                        value="" data-bind="value: latest_value"/>
-                                        Target Prob
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div data-bind="with: client.varbyname('default_alwaysreward_amount')">
-                                        <input class="control_input"
-                                        value="" data-bind="value: latest_value"/>
-                                        Always Reward Amount
-                                    </div>
-                                </td>
-                                <td>
-                                    <div data-bind="with: client.varbyname('default_punish_numcycles')">
-                                        <input class="control_input"
-                                        value="" data-bind="value: latest_value"/>
-                                        N cycles
-                                    </div>
-                                </td>
-                                <td>
-                                    <div data-bind="with: client.varbyname('targetdur_time')">
-                                        <input class="control_input"
-                                        value="" data-bind="value: latest_value"/>
-                                        Target Duration
-                                    </div>
-                                </td>
-                                <td>
-                                    <div data-bind="with: client.varbyname('curr_contrast')">
-                                        <input class="control_input"
-                                        value="" data-bind="value: latest_value"/>
-                                        Distractor Contrast
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="multicolumn_block">
+                    <div class="control_column">
+                        <h2 class="control_heading">Reward</h2>
+                        <div var-bind="check:flag_always_reward">Always Reward</div>
+                        <div var-bind="default_alwaysreward_amount">ml</div>
+                        <h3 class="control_heading">Standard Reward</h3>
+                        <div var-bind="reward_min">min</div>
+                        <div var-bind="reward_max">max</div>
+                        <div var-bind="reward_increment">increment</div>
+                        <div var-bind="default_reward_amount">Manual Reward</div>
+                        <!-- <div var-bind="button:lick_output">Give Reward</div> -->
+                    </div>
+                    <div class="control_column">
+                        <h2 class="control_heading">Punishment</h2>
+                        <div var-bind="check:flag_punish_lick">Punish Licking</div>
+                        <div var-bind="default_punish_numcycles">N Cycles</div>
+                        <div var-bind="default_timeout_dur">Timeout</div>
+                        <div var-bind="check:flag_postreward_punish">Post-reward Punish</div>
+                        <div var-bind="postreward_punish">N Cycles</div>
+                        <div var-bind="postreward_timeout">Timeout</div>
+                    </div>
+                    <div class="control_column">
+                        <h2 class="control_heading">Timing</h2>
+                        <div var-bind="check:flag_dim_target">Dim Target</div>
+                        <div var-bind="targetdur_time">Target Duration</div>
+                        <div var-bind="distractor_time">Distractor Duration</div>
+                        <div var-bind="reward_time">Licking Duration</div>
+                        <h2 class="control_heading">Stimuli</h2>
+                        <div var-bind="targetprob">Target Prob</div>
+                        <div var-bind="curr_contrast">Distractor Contrast</div>
+                    </div>
+                </div>
+                <h1 class="control_heading">Phase training</h1>
+                <div var-bind="check:flag_automate">Automate Training</div>
+                <div class="multicolumn_block">
+                    <div class="control_column">
+                        <h2 class="control_heading">Manual Training</h2>
+                        <div var-bind="check:flag_prereward">Pre Reward</div>
+                        <div var-bind="check:flag_target_training">Target Training</div>
+                        <div var-bind="check:flag_contrast_training">Contrast Training</div>
+                        <div var-bind="check:flag_always_reward">Always Reward</div>
+                        <div var-bind="check:flag_punish_lick">Punish Licking</div>
+                        <div var-bind="check:flag_postreward_punish">Post-reward Punish</div>
+                        <div var-bind="phases_completed">Phases Completed</div>
+                        <div var-bind="threshold">Threshold</div>
+                        <div var-bind="min_for_criterion">Min Trials for Criterion</div>
+                    </div>
+                    <div class="control_column">
+                        <h2 class="control_heading">Phase Transition</h2>
+                        <div var-bind="correct_lick">Correct Lick</div>
+                        <div var-bind="correct_ignore">Correct Ignore</div>
+                        <div var-bind="bad_lick">Bad Lick</div>
+                        <div var-bind="bad_ignore">Bad Ignore</div>
+                        <div var-bind="criterion_count">Criterion Count</div>
+                        <div var-bind="criterion_met">Criterion Met</div>
+                    </div>
+                </div>
+                <h1 class="control_heading">Phases</h1>
+                <div class="multicolumn_block">
+                    <div class="control_column">
+                        <h2 class="control_heading">Target Prob</h2>
+                        <div var-bind="targetprob">Target Prob</div>
+                        <div var-bind="targetprob_up_thresh">Up threshold</div>
+                        <div var-bind="targetprob_down_thresh">Down threshold</div>
+                        <div var-bind="targetprob_upper">Upper Bound</div>
+                        <div var-bind="targetprob_lower">Lower Bound</div>
+                        <div var-bind="targetprob_stepsize">Increment</div>
+                        <div var-bind="progress">Current Tracked</div>
+                        <div var-bind="curr_progress">Current Overall Success</div>
+                    </div>
+                    <div class="control_column">
+                        <h2 class="control_heading">Contrast</h2>
+                        <div var-bind="curr_contrast">Distractor Contrast</div>
+                        <div var-bind="contrast_up_thresh">Up threshold</div>
+                        <div var-bind="contrast_down_thresh">Down threshold</div>
+                        <div var-bind="contrast_upper">Upper Bound</div>
+                        <div var-bind="contrast_lower">Lower Bound</div>
+                        <div var-bind="contrast_stepsize">Increment</div>
+                        <div var-bind="distractor_perf">Current Tracked</div>
+                        <div var-bind="curr_distractor_perf">Current Overall Success</div>
+                    </div>
                 </div>
                 <!--
-                Basic
-                ======
-                Reward:
-                    min, max, increment
-                    flag always reward (& amount)
-                    manual reward (& amount)
-                    current reward
-                    lick sensor
-                Punishment:
-                    flag punish licking
-                        cycles & timeout 
-                    flag post reward punish
-                        cycles & timeout
-                Timing:
-                    flag dim target
-                    target pres time
-                    dis pres time
-                    licking time
-                Stim control:
-                    target prob
-                    distractor contrast
-
-
-                Phase training
-                ======
-                flag automate
-                Manual training:
-                    flags
-                        pre-reward
-                        target-training
-                        contrast-training
-                        always-reward
-                        punish-licking
-                        post-reward punishment
-                    phases completed
-                    threshold
-                    min trials for criterion
-
-                Phase transition:
-                    correct lick
-                    bad lick
-                    bad ignore
-                    correct ignore
-                    criterion count
-                    criterion met
-
-                Stair (target prob):
-                    Flag enabled/disabled
-                    Current target prob
-                    up criterion
-                    down criterion
-                    lower bound
-                    increment
-                    tracked progress
-                    current performance
-                
-                Stair (contrast):
-                    <see Stair(target prob)>
-
-
-
-                head sensing
                 head sensor
                 lick sensor
-
                 -->
             </div>
             <div id="disp_graphs" class="disp_graphs">
