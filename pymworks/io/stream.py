@@ -4,6 +4,7 @@ import collections
 import logging
 import getpass
 import os
+import re
 import select
 import socket
 import subprocess
@@ -29,10 +30,15 @@ def read_event_from_ldo(ldo, codec):
 
 
 class EventStream(Stream):
-    def __init__(self, host, port=defaultport, autoconnect=True, \
-            timeout=defaulttimeout):
+    def __init__(self, host, port=defaultport, autoconnect=True,
+                 timeout=defaulttimeout):
         Stream.__init__(self, autoconnect=False)
         self.tdelay = 0
+        # check if host is ip address
+        if re.match(r'[0-9]+(?:\.[0-9]+){3}', host) is None:
+            logging.debug("Getting ip for host %s" % host)
+            host = socket.gethostbyname(host)
+            logging.debug("host ip: %s" % host)
         self.host = host
         self.port = port
         self.timeout = timeout
@@ -66,12 +72,12 @@ class EventStream(Stream):
             self.rsocket.close()
             del self.rsocket
             return
-        self.rldo = LDOBinary.LDOBinaryUnmarshaler( \
-                self.rsocket.makefile('rb', 0))
+        self.rldo = \
+            LDOBinary.LDOBinaryUnmarshaler(self.rsocket.makefile('rb', 0))
         self.rldo.um_init()
         logging.debug("Client: built unmarshaler %s" % self.rldo)
-        self.wldo = LDOBinary.LDOBinaryMarshaler( \
-                self.wsocket.makefile('wb', 0))
+        self.wldo = \
+            LDOBinary.LDOBinaryMarshaler(self.wsocket.makefile('wb', 0))
         self.wldo.written_stream_header = 1  # don't write the stream header
         self.wldo.m_init()
         logging.debug("Client: built marshaler %s" % self.wldo)
@@ -104,7 +110,7 @@ class EventStream(Stream):
     # overload methods that will not work (get_events...)
     def get_events(self, **kwargs):
         raise NotImplementedError("StreamReader.get_events not possible, "
-                "use BufferedStreamReader")
+                                  "use BufferedStreamReader")
 
     def now(self):
         return int(pytime.time() * 1E6 + self.tdelay)
@@ -146,9 +152,8 @@ class EventStream(Stream):
         else:
             event = self.make_event(*args)
         if not all([hasattr(event, k) for k in ('code', 'time', 'value')]):
-            raise ValueError(\
-                    "Event %s does not contain a code time and value" % \
-                    event)
+            raise ValueError("Event %s does not contain a code time and value"
+                             % event)
         self.require_connected()
         self.wldo.dump([event.code, event.time, event.value])
         if flush:
@@ -163,8 +168,8 @@ class EventStream(Stream):
 
 
 class Server(Stream):
-    def __init__(self, host, port=defaultport, autoconnect=True, \
-            timeout=defaulttimeout):
+    def __init__(self, host, port=defaultport, autoconnect=True,
+                 timeout=defaulttimeout):
         Stream.__init__(self, autoconnect=False)
         self.host = host
         self.port = port
@@ -191,8 +196,8 @@ class Server(Stream):
             return
 
         logging.debug("Server: building marshaler")
-        self.wldo = LDOBinary.LDOBinaryMarshaler( \
-                self.wconn.makefile('wb', 0))
+        self.wldo = \
+            LDOBinary.LDOBinaryMarshaler(self.wconn.makefile('wb', 0))
         logging.debug("Server: init marshaler %s" % self.wldo)
         self.wldo.m_init()
         logging.debug("Server: flushing")
@@ -210,10 +215,10 @@ class Server(Stream):
 
         logging.debug("Server: building unmarshaler")
         # strangly, the native server writes a stream header here
-        self.rconn.sendall(LDOBinary.MAGIC + LDOBinary.VERSION + \
-                chr(LDOBinary.MAJOR) + chr(LDOBinary.MINOR))
-        self.rldo = LDOBinary.LDOBinaryUnmarshaler( \
-                self.rconn.makefile('rb', 0))
+        self.rconn.sendall(LDOBinary.MAGIC + LDOBinary.VERSION +
+                           chr(LDOBinary.MAJOR) + chr(LDOBinary.MINOR))
+        self.rldo = \
+            LDOBinary.LDOBinaryUnmarshaler(self.rconn.makefile('rb', 0))
         logging.debug("Server: built unmarshaler: %s" % self.rldo)
         self.rldo.read_stream_header = 1  # don't read the stream header
         self.rldo.um_init()
@@ -266,10 +271,10 @@ class Server(Stream):
 
 
 class BufferedEventStream(EventStream):
-    def __init__(self, host, port=defaultport, autoconnect=True, \
-            timeout=defaulttimeout, bufferlength=1):
-        EventStream.__init__(self, host, port=port, \
-                autoconnect=False, timeout=timeout)
+    def __init__(self, host, port=defaultport, autoconnect=True,
+                 timeout=defaulttimeout, bufferlength=1):
+        EventStream.__init__(self, host, port=port,
+                             autoconnect=False, timeout=timeout)
         self.bufferlength = bufferlength
         self.eventbuffer = collections.defaultdict(list)
         if autoconnect:
@@ -312,10 +317,11 @@ class BufferedEventStream(EventStream):
 
 class Client(BufferedEventStream):
     def __init__(self, host, port=defaultport, autoconnect=True,
-            timeout=defaulttimeout, bufferlength=100, user=None,
-            startserver=True):
-        BufferedEventStream.__init__(self, host, port=port, autoconnect=False,
-                bufferlength=bufferlength, timeout=timeout)
+                 timeout=defaulttimeout, bufferlength=100, user=None,
+                 startserver=True):
+        BufferedEventStream.__init__(
+            self, host, port=port, autoconnect=False,
+            bufferlength=bufferlength, timeout=timeout)
         self.state = {}
         self.register_callback(1, self.update_state)
         self.user = getpass.getuser() if user is None else user
@@ -374,9 +380,9 @@ class Client(BufferedEventStream):
             # -f puts ssh in background
             # BatchMode=yes disable password prompt
             cmd = 'ssh -o ConnectTimeout=%s -o BatchMode=yes ' \
-                    '-l %s %s /usr/bin/open ' \
-                    '/Applications/MWServer.app' % \
-                    (timeout, user, self.host)
+                  '-l %s %s /usr/bin/open ' \
+                  '/Applications/MWServer.app' % \
+                  (timeout, user, self.host)
         logging.debug("Launching: %s" % cmd)
         if logging.root.level <= logging.DEBUG:
             kwargs = dict(stderr=sys.stderr, stdout=sys.stdout)
@@ -386,8 +392,9 @@ class Client(BufferedEventStream):
         #command = Command(cmd, **kwargs)
         #ret = command.run(1)
         if ret != 0:
-            logging.warning("Failed to start server %s@%s, return code: %s" % \
-                    (user, self.host, ret))
+            logging.warning(
+                "Failed to start server %s@%s, return code: %s" %
+                (user, self.host, ret))
             return False
         # wait for server to start
         pytime.sleep(1)
@@ -404,9 +411,10 @@ class Client(BufferedEventStream):
                 result = False
                 error = E
             if not result:
-                logging.warning("Failed to start server at %s@%s: %s" % \
-                        (self.user, self.host, error))
+                logging.warning(
+                    "Failed to start server at %s@%s: %s" %
+                    (self.user, self.host, error))
             else:
-                logging.debug("Started server at %s@%s" % \
-                        (self.user, self.host))
+                logging.debug("Started server at %s@%s" %
+                              (self.user, self.host))
         BufferedEventStream.connect(self)
