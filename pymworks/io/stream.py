@@ -29,16 +29,17 @@ def read_event_from_ldo(ldo, codec):
     return e
 
 
+def resolve_host(host):
+    if re.match(r'[0-9]+(?:\.[0-9]+){3}', host) is None:
+        return socket.gethostbyname(host)
+    return host
+
+
 class EventStream(Stream):
     def __init__(self, host, port=defaultport, autoconnect=True,
                  timeout=defaulttimeout):
         Stream.__init__(self, autoconnect=False)
         self.tdelay = 0
-        # check if host is ip address
-        if re.match(r'[0-9]+(?:\.[0-9]+){3}', host) is None:
-            logging.debug("Getting ip for host %s" % host)
-            host = socket.gethostbyname(host)
-            logging.debug("host ip: %s" % host)
         self.host = host
         self.port = port
         self.timeout = timeout
@@ -49,6 +50,7 @@ class EventStream(Stream):
     def connect(self):
         if self._connected:
             return
+        self.host = resolve_host(self.host)
         try:
             self.rsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.rsocket.settimeout(self.timeout)
@@ -182,6 +184,7 @@ class Server(Stream):
         if self._connected:
             return
         logging.debug("Server: listening for client write connnection")
+        self.host = resolve_host(self.host)
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             #self.socket.settimeout(self.timeout)
