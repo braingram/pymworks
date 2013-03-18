@@ -54,6 +54,7 @@
         $.pnotify.defaults.styling = "jqueryui";
         var client; // make this global
 
+        var gid;
         var graphdata = [
             {'key': 'correct_lick', 'values': []},
             {'key': 'correct_ignore', 'values': []},
@@ -149,7 +150,19 @@
             chart.yAxis.tickFormat(d3.format('i'));
             redraw();
             nv.utils.windowResize(chart.update);
-            //window.setInterval(redraw, 1000);
+            start_graphing();
+        };
+
+        function start_graphing() {
+            gid = window.setInterval(redraw, 1000);
+        };
+
+        function stop_graphing() {
+            window.clearInterval(gid);
+        };
+
+        function setup_camera() {
+            $('#disp_camera img').attr('src', 'http://' + client.host() + ':8020/videoView');
         };
 
         $(document).ready(function () {
@@ -183,6 +196,7 @@
                 ko.applyBindings(client, $('#disp_controls').get(0));
                 ko.applyBindings(client, $('#disp_graphs').get(0)));
                 */
+                setup_camera();
             };
 
             client.after_codec = function () {
@@ -339,6 +353,7 @@
                 <li><a href='#disp_variables'>Variables</a></li>
                 <li><a href='#disp_controls'>Controls</a></li>
                 <li><a href='#disp_graphs'>Graphs</a></li>
+                <li><a href='#disp_camera'>Camera</a></li>
             </ul>
             <div id="disp_variables" class="disp_variables">
                 <table>
@@ -449,7 +464,16 @@
                 -->
             </div>
             <div id="disp_graphs" class="disp_graphs">
+                <div>
+                    <button class="control_button" title="start graphing"
+                        onclick="start_graphing()">Start Graphing</button>
+                    <button class="control_button" title="stop graphing"
+                        onclick="stop_graphing()">Stop Graphing</button>
+                </diV>
                 <svg id='chart'></svg>
+            </div>
+            <div id="disp_camera" class=disp_camera">
+                <img src=""></img>
             </div>
     </div>
     <div id="filetree" title="Select a file"></div>
