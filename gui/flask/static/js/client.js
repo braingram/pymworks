@@ -239,8 +239,7 @@ mworks.client = (function () {
     };
 
     client.parse_state = function (state) {
-        console.log('State...');
-        console.log(state);
+        console.log({'State': state});
         if ('paused' in state) {
             if (Boolean(state.paused) != client.paused()) {
                 client.paused(Boolean(state.paused));
@@ -339,6 +338,9 @@ mworks.client = (function () {
                     if (event) {
                         client.unstored_events.push(event);
                     };
+                };
+                if (client.after_codec != null) {
+                    client.after_codec();
                 };
             };
         };

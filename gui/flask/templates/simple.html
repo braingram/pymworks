@@ -85,7 +85,8 @@
                     // TODO value checking
                     vs.push([evs[vi].time, evs[vi].value]);
                 };
-                graphdata[i]['values'] = vs.sort(function (a, b) { a[0] - b[0] });
+                vs.sort(function(a, b) { return a[0] - b[0]; });
+                graphdata[i]['values'] = vs;
                 mi = Math.max(mi, vs.length);
                 //inds[graphdata[i]['key']] = 0;
                 inds[i] = 0;
@@ -130,6 +131,7 @@
 
             for (di in cvs) {
                 graphdata[di]['values'] = cvs[di];
+                graphdata[di]['values'].sort(function(a, b) { return a[0] - b[0] });
             };
 
             console.log(graphdata);
@@ -166,11 +168,8 @@
                 $('#filetree').dialog('close');
                 client.experiment_path(file);
                 client.load_experiment();
-                // TODO clean out old bindings?
-                ko.applyBindings(client, $('#disp_controls').get(0));
-                ko.applyBindings(client, $('#disp_graphs').get(0));
-                make_graphs();
             });
+
             $('#filetree').dialog({
                 autoOpen: false,
                 height: 400,
@@ -184,6 +183,18 @@
                 ko.applyBindings(client, $('#disp_controls').get(0));
                 ko.applyBindings(client, $('#disp_graphs').get(0)));
                 */
+            };
+
+            client.after_codec = function () {
+                // TODO clean out old bindings?
+                ko.applyBindings(client, $('#disp_controls').get(0));
+                ko.applyBindings(client, $('#disp_graphs').get(0));
+                for (i in graphdata) {
+                    k = graphdata[i]['key'];
+                    client.varbyname(k).n = 100;
+                    console.log(client.varbyname(k).n);
+                };
+                make_graphs();
             };
 
             client.throw = function (msg) {
