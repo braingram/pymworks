@@ -1,15 +1,9 @@
-Wrote base io class
-need:
-- testing & documentation
-- flask ui (for datafiles & streams)
-
 This is a pure-python module for reading mworks data files.
 
 Requirements
 ----
 
-- Numpy (for np.inf and np.nan)
-- (optional) pytables (for conversion to hdf5)
+None for 'basics'
 
 ====
 Intro
