@@ -192,21 +192,15 @@
             };
 
             client.after_connected = function () {
-                /*  TODO manage bindings
-                ko.applyBindings(client, $('#disp_controls').get(0));
-                ko.applyBindings(client, $('#disp_graphs').get(0)));
-                */
                 setup_camera();
             };
 
             client.after_codec = function () {
-                // TODO clean out old bindings?
-                ko.applyBindings(client, $('#disp_controls').get(0));
-                ko.applyBindings(client, $('#disp_graphs').get(0));
+                client.apply_binding('#disp_controls');
+                // graph stuff
                 for (i in graphdata) {
                     k = graphdata[i]['key'];
                     client.varbyname(k).n = 100;
-                    console.log(client.varbyname(k).n);
                 };
                 make_graphs();
             };
@@ -220,10 +214,16 @@
                 throw msg;
             };
             // must be done AFTER redefining select_experiment :-/ 
+            client.apply_binding('#toolbar');
+            client.apply_binding('#disp_variables');
+            /*
             ko.applyBindings(client, $('#toolbar').get(0));
             ko.applyBindings(client, $('#disp_variables').get(0));
+            */
+            client.bind_variables('[var-bind]');
 
             // parse var-binds
+            /*
             $('[var-bind]').each( function(index) {
                 node = $(this).get(0);
                 vb = node.attributes['var-bind'];
@@ -248,6 +248,7 @@
                         client.throw("Invalid var-bind type: " + bt);
                 };
             });
+            */
         });
     </script>
 </head>
@@ -371,9 +372,10 @@
             </div>
             <div id="disp_controls" class="disp_controls">
                 <!-- example button control that sends most recent value -->
-                <button class="control_button" title="lick_output"
-                    onclick="client.send_event('lick_output', client.varbyname('default_reward_amount').latest_value())">
-                    lick_output</button>
+                <div var-bind="button=client.varbyname('default_reward_amount').latest_value():lick_output">Give Reward</div>
+                <div var-bind="button=500:lick_input">Trigger lick_input</div>
+                <div var-bind="button=0:lick_input">Zero lick_input</div>
+                <div var-bind="button=1000:lick_input">Max lick_input</div>
                 <div var-bind="check:flag_head_sensing">Head Sensing</div>
                 <h1 class="control_heading">Basics</h1>
                 <div class="multicolumn_block">
@@ -386,7 +388,7 @@
                         <div var-bind="reward_max">max</div>
                         <div var-bind="reward_increment">increment</div>
                         <div var-bind="default_reward_amount">Manual Reward</div>
-                        <!-- <div var-bind="button:lick_output">Give Reward</div> -->
+                        <div var-bind="button=client.varbyname('default_reward_amount').latest_value():lick_output">Give Reward</div>
                     </div>
                     <div class="control_column">
                         <h2 class="control_heading">Punishment</h2>
@@ -458,10 +460,27 @@
                         <div var-bind="curr_distractor_perf">Current Overall Success</div>
                     </div>
                 </div>
-                <!--
-                head sensor
-                lick sensor
-                -->
+                <h1 class="control_heading">IO</h1>
+                <div class="multicolumn_block">
+                    <div class="control_column">
+                        <h2 class="control_heading">Head Sensor</h2>
+                        <div var-bind="head_input">Value</div>
+                        <div var-bind="headsensor_min">Min</div>
+                        <div var-bind="headsensor_max">Max</div>
+                        <div var-bind="button=500:head_input">Trigger</div>
+                        <div var-bind="button=0:head_input">Zero</div>
+                        <div var-bind="button=1000:head_input">Max</div>
+                    </div>
+                    <div class="control_column">
+                        <h2 class="control_heading">Lick Sensor</h2>
+                        <div var-bind="lick_input">Value</div>
+                        <div var-bind="licksensor_min">Min</div>
+                        <div var-bind="licksensor_max">Max</div>
+                        <div var-bind="button=500:lick_input">Trigger</div>
+                        <div var-bind="button=0:lick_input">Zero</div>
+                        <div var-bind="button=1000:lick_input">Max</div>
+                    </div>
+                </div>
             </div>
             <div id="disp_graphs" class="disp_graphs">
                 <div>
@@ -477,8 +496,5 @@
             </div>
     </div>
     <div id="filetree" title="Select a file"></div>
-    <script>
-        $(parent).trigger('initialize:frame');
-    </script>
 </body>
 </html>

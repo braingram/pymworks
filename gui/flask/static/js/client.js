@@ -139,6 +139,57 @@ mworks.client = (function () {
     client.after_loaded = null;
     client.after_protocols = null;
 
+    client.bindings = {};
+
+    client.apply_binding = function (selector) {
+        if (selector in client.bindings) {
+            // remove binding
+            $(selector).unbind('*'); // unbinds ALL events
+            ko.cleanNode($(selector).get(0));
+        };
+        // apply binding
+        ko.applyBindings(client, $(selector).get(0));
+        client.bindings[selector] = true;
+    };
+
+    client.bind_variables = function (selector) {
+        $(selector).each( function(index) {
+            node = $(this).get(0);
+            vb = node.attributes['var-bind'];
+            if (vb.value.indexOf(':') === -1) {
+                bt = 'value';
+                vn = vb.value;
+            } else {
+                tokens = vb.value.split(':');
+                bt = tokens[0];
+                vn = tokens[1];
+            };
+            // check if bt has associated value
+            if (bt.indexOf('=') === -1) {
+                bv = 'client.varbyname("' + vn + '").latest_value()';
+            } else {
+                tokens = bt.split('=');
+                bt = tokens[0];
+                bv = tokens[1];
+            };
+            switch (bt) {
+                case 'value':
+                    $(this).attr('data-bind', "with: client.varbyname('" + vn + "')");
+                    node.innerHTML = "<input class='control_input' value='' data-bind='value: latest_value'/>" + node.innerHTML;
+                    break;
+                case 'check':
+                    $(this).attr('data-bind', "with: client.varbyname('" + vn + "')");
+                    node.innerHTML = "<input class='control_check' type='checkbox' value='' data-bind='checked: latest_value'/>" + node.innerHTML;
+                    break;
+                case 'button':
+                    node.innerHTML = "<button class='control_button' title='" + vn + "' onclick='client.send_event(" + '"' + vn + '"' + ", " + bv + ")'>" + vn + '=' + bv + "</button>";
+                    break;
+                default:
+                    client.throw("Invalid var-bind type: " + bt);
+            };
+        });
+    };
+
     client.throw = function (msg) {
         throw msg;
     };
