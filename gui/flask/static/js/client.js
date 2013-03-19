@@ -94,6 +94,7 @@ mworks.client = (function () {
     client.host = ko.observable("");
     client.port = ko.observable(19989);
     client.user = ko.observable("");
+    client.startserver = ko.observable(false);
     
     client.experiment_path = ko.observable("");
     client.experiment_name = ko.observable("");
@@ -513,6 +514,7 @@ mworks.client = (function () {
         client.socket.emit('command', 'host', client.host());
         client.socket.emit('command', 'port', client.port());
         client.socket.emit('command', 'user', client.user());
+        client.socket.emit('command', 'startserver', client.startserver());
         client.socket.emit('command', 'connect');
     };
 
