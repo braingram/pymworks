@@ -12,10 +12,10 @@
 {% block head_js %}
         var gid;
         var graphdata = [
-            {'key': 'correct_lick', 'values': []},
-            {'key': 'correct_ignore', 'values': []},
-            {'key': 'bad_lick', 'values': []},
-            {'key': 'bad_ignore', 'values': []},
+            {'key': 'success', 'values': []},
+            {'key': 'ignore', 'values': []},
+            {'key': 'failure', 'values': []},
+            {'key': 'correctIgnore', 'values': []},
         ];
 
         var chart;
@@ -117,17 +117,9 @@
             window.clearInterval(gid);
         };
 
-        function setup_camera() {
-            $('#disp_camera img').attr('src', 'http://' + client.host() + ':8020/videoView');
-        };
-
 {% endblock %}
 
 {% block documentready_js %}
-            client.after_connected = function () {
-                setup_camera();
-            };
-
             client.after_codec = function () {
                 client.apply_binding('#disp_controls');
                 // graph stuff
@@ -139,123 +131,71 @@
             };
 
 {% endblock %}
-{% block display_menu %}
-                <li><a href='#disp_camera'>Camera</a></li>
-{% endblock %}
 {% block display_controls %}
                 <!-- example button control that sends most recent value -->
-                <div var-bind="button=client.varbyname('default_reward_amount').latest_value():lick_output">Give Reward</div>
-                <div var-bind="button=500:lick_input">Trigger lick_input</div>
-                <div var-bind="button=0:lick_input">Zero lick_input</div>
-                <div var-bind="button=1000:lick_input">Max lick_input</div>
-                <div var-bind="check:flag_head_sensing">Head Sensing</div>
+                <div var-bind="button=client.varbyname('reward_duration').latest_value():LickOutput1">Give Reward</div>
+                <div var-bind="button=1000:LickInput">Trigger LickInput</div>
                 <h1 class="control_heading">Basics</h1>
                 <div class="multicolumn_block">
                     <div class="control_column">
                         <h2 class="control_heading">Reward</h2>
-                        <div var-bind="check:flag_always_reward">Always Reward</div>
-                        <div var-bind="default_alwaysreward_amount">ml</div>
-                        <h3 class="control_heading">Standard Reward</h3>
-                        <div var-bind="reward_min">min</div>
-                        <div var-bind="reward_max">max</div>
-                        <div var-bind="reward_increment">increment</div>
-                        <div var-bind="default_reward_amount">Manual Reward</div>
-                        <div var-bind="button=client.varbyname('default_reward_amount').latest_value():lick_output">Give Reward</div>
+                        <div var-bind="check:FlagAlwaysReward">Always Reward</div>
+                        <div var-bind="reward_duration">ml</div>
+                        <div var-bind="button=client.varbyname('reward_duration').latest_value():LickOutput1">Give Reward</div>
                     </div>
                     <div class="control_column">
                         <h2 class="control_heading">Punishment</h2>
-                        <div var-bind="check:flag_punish_lick">Punish Licking</div>
-                        <div var-bind="default_punish_numcycles">N Cycles</div>
-                        <div var-bind="default_timeout_dur">Timeout</div>
-                        <div var-bind="check:flag_postreward_punish">Post-reward Punish</div>
-                        <div var-bind="postreward_punish">N Cycles</div>
-                        <div var-bind="postreward_timeout">Timeout</div>
+                        <div var-bind="check:FlagPunishLicking">Punish Licking</div>
+                        <div var-bind="check:FlagPunishMoving">Punish Moving</div>
+                        <div var-bind="check:FlagLongPunishment">Long Punishment</div>
+                        <div var-bind="Number_PunishmentCycles">N Cycles</div>
+                        <div var-bind="timeout_time">Timeout</div>
                     </div>
                     <div class="control_column">
                         <h2 class="control_heading">Timing</h2>
-                        <div var-bind="check:flag_dim_target">Dim Target</div>
-                        <div var-bind="targetdur_time">Target Duration</div>
-                        <div var-bind="distractor_time">Distractor Duration</div>
-                        <div var-bind="reward_time">Licking Duration</div>
-                        <h2 class="control_heading">Stimuli</h2>
-                        <div var-bind="targetprob">Target Prob</div>
-                        <div var-bind="curr_contrast">Distractor Contrast</div>
+                        <div var-bind="StimulusPresentation_time">Target Duration</div>
+                        <div var-bind="DistractorPresentation_Time">Distractor Duration</div>
+                        <div var-bind="TargetIdleTime">Target Idle Time</div>
+                        <div var-bind="DistractorIdleTime">Distractor Idle Time</div>
+                        <div var-bind="reward_time">Reward Time</div>
                     </div>
                 </div>
-                <h1 class="control_heading">Phase training</h1>
-                <div var-bind="check:flag_automate">Automate Training</div>
-                <div class="multicolumn_block">
-                    <div class="control_column">
-                        <h2 class="control_heading">Manual Training</h2>
-                        <div var-bind="check:flag_prereward">Pre Reward</div>
-                        <div var-bind="check:flag_target_training">Target Training</div>
-                        <div var-bind="check:flag_contrast_training">Contrast Training</div>
-                        <div var-bind="check:flag_always_reward">Always Reward</div>
-                        <div var-bind="check:flag_punish_lick">Punish Licking</div>
-                        <div var-bind="check:flag_postreward_punish">Post-reward Punish</div>
-                        <div var-bind="phases_completed">Phases Completed</div>
-                        <div var-bind="threshold">Threshold</div>
-                        <div var-bind="min_for_criterion">Min Trials for Criterion</div>
-                    </div>
-                    <div class="control_column">
-                        <h2 class="control_heading">Phase Transition</h2>
-                        <div var-bind="correct_lick">Correct Lick</div>
-                        <div var-bind="correct_ignore">Correct Ignore</div>
-                        <div var-bind="bad_lick">Bad Lick</div>
-                        <div var-bind="bad_ignore">Bad Ignore</div>
-                        <div var-bind="criterion_count">Criterion Count</div>
-                        <div var-bind="criterion_met">Criterion Met</div>
-                    </div>
-                </div>
-                <h1 class="control_heading">Phases</h1>
-                <div class="multicolumn_block">
-                    <div class="control_column">
-                        <h2 class="control_heading">Target Prob</h2>
-                        <div var-bind="targetprob">Target Prob</div>
-                        <div var-bind="targetprob_up_thresh">Up threshold</div>
-                        <div var-bind="targetprob_down_thresh">Down threshold</div>
-                        <div var-bind="targetprob_upper">Upper Bound</div>
-                        <div var-bind="targetprob_lower">Lower Bound</div>
-                        <div var-bind="targetprob_stepsize">Increment</div>
-                        <div var-bind="progress">Current Tracked</div>
-                        <div var-bind="curr_progress">Current Overall Success</div>
-                    </div>
-                    <div class="control_column">
-                        <h2 class="control_heading">Contrast</h2>
-                        <div var-bind="curr_contrast">Distractor Contrast</div>
-                        <div var-bind="contrast_up_thresh">Up threshold</div>
-                        <div var-bind="contrast_down_thresh">Down threshold</div>
-                        <div var-bind="contrast_upper">Upper Bound</div>
-                        <div var-bind="contrast_lower">Lower Bound</div>
-                        <div var-bind="contrast_stepsize">Increment</div>
-                        <div var-bind="distractor_perf">Current Tracked</div>
-                        <div var-bind="curr_distractor_perf">Current Overall Success</div>
-                    </div>
+                <h1 class="control_heading">Performance</h1>
+                <div>
+                    <div var-bind="success">Targets licked</div>
+                    <div var-bind="ignore">Targets ignored</div>
+                    <div var-bind="failure">Bad Licks</div>
+                    <div var-bind="correctIgnore">Distractors correctly ignored</div>
                 </div>
                 <h1 class="control_heading">IO</h1>
                 <div class="multicolumn_block">
                     <div class="control_column">
-                        <h2 class="control_heading">Head Sensor</h2>
-                        <div var-bind="head_input">Value</div>
-                        <div var-bind="headsensor_min">Min</div>
-                        <div var-bind="headsensor_max">Max</div>
-                        <div var-bind="button=500:head_input">Trigger</div>
-                        <div var-bind="button=0:head_input">Zero</div>
-                        <div var-bind="button=1000:head_input">Max</div>
+                        <h2 class="control_heading">Phidget</h2>
+                        <div var-bind="LickInput">LickInput</div>
+                        <div var-bind="button=1000:LickInput">Trigger Lick</div>
+                        <div var-bind="MotionInput1">Motion1</div>
+                        <div var-bind="MotionInput2">Motion2</div>
+                        <div var-bind="RefMotionAxis1">RefMotion2</div>
+                        <div var-bind="RefMotionAxis2">RefMotion2</div>
+                        <div var-bind="ThMotion">Motion Threshold</div>
+                        <div var-bind="ThLickingMotion">Licking Motion Threshold</div>
                     </div>
                     <div class="control_column">
-                        <h2 class="control_heading">Lick Sensor</h2>
-                        <div var-bind="lick_input">Value</div>
-                        <div var-bind="licksensor_min">Min</div>
-                        <div var-bind="licksensor_max">Max</div>
-                        <div var-bind="button=500:lick_input">Trigger</div>
-                        <div var-bind="button=0:lick_input">Zero</div>
-                        <div var-bind="button=1000:lick_input">Max</div>
+                        <h2 class="control_heading">CNC</h2>
+                        <div var-bind="path_origin_x">Origin X</div>
+                        <div var-bind="path_origin_y">Origin Y</div>
+                        <div var-bind="path_origin_z">Origin Z</div>
+                        <div var-bind="path_slope_x">Slope X</div>
+                        <div var-bind="path_slope_y">Slope Y</div>
+                        <div var-bind="path_slope_z">Slope Z</div>
+                        <div var-bind="path_depth">Path Depth</div>
+                    </div>
+                    <div class="control_column">
+                        <h2 class="control_heading">Eye</h2>
+                        <div var-bind="calibration_status">Status</div>
+                        <div var-bind="pupil_radius">Radius</div>
+                        <div var-bind="gaze_h">Horizontal</div>
+                        <div var-bind="gaze_v">Vertical</div>
                     </div>
                 </div>
-{% endblock %}
-{% block display_items %}
-            <div id="disp_camera" class=disp_camera">
-                <img src=""></img>
-            </div>
 {% endblock %}
