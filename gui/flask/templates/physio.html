@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{# available:
+    head
+    head_js
+    documentready_js
+    display_menu
+    display_items
+    display_controls
+    body
+#}
+
+{% block head_js %}
+        var gid;
+        var graphdata = [
+            {'key': 'correct_lick', 'values': []},
+            {'key': 'correct_ignore', 'values': []},
+            {'key': 'bad_lick', 'values': []},
+            {'key': 'bad_ignore', 'values': []},
+        ];
+
+        var chart;
+
+        function getvalue(data, di, index) {
+            if (index >= data[di]['values'].length) {
+                return [false, data[di]['values'][data[di]['values'].length - 1]];
+            } else {
+                return [true, data[di]['values'][index]];
+            };
+        };
+
+        function redraw() {
+            // copy data
+            mi = 0;
+            inds = {};
+            cvs = {};
+            for (i in graphdata) {
+                vn = graphdata[i]['key']
+                vs = [];
+                v = client.varbyname(vn);
+                evs = v.events();
+                for (vi in evs) {
+                    // TODO value checking
+                    vs.push([evs[vi].time, evs[vi].value]);
+                };
+                vs.sort(function(a, b) { return a[0] - b[0]; });
+                graphdata[i]['values'] = vs;
+                mi = Math.max(mi, vs.length);
+                //inds[graphdata[i]['key']] = 0;
+                inds[i] = 0;
+                cvs[i] = [];
+            };
+            // prep data
+            alldone = false;
+            rs = {};
+            values = {};
+            while (!alldone) {
+                // get values for all data
+                mt = Infinity;
+                mdi = 0;
+                for (di in inds) {
+                    r = getvalue(graphdata, di, inds[di]);
+                    rs[di] = r[0];
+                    values[di] = r[1];
+                    // find one with lowest time
+                    if ((r[1][0] < mt) && (r[0])) {
+                        mt = r[1][0];
+                        mdi = di;
+                    };
+                };
+                alldone = true;
+                for (i in rs) {
+                    alldone = alldone && (!rs[i]);
+                };
+                if (alldone) {
+                    break;
+                };
+                // match all others to that
+                for (di in inds) {
+                    cvs[di].push([mt, values[di][1]]);
+                };
+                // increment that time for that one
+                inds[mdi] += 1;
+                alldone = true;
+                for (i in rs) {
+                    alldone = alldone && (!rs[i]);
+                };
+            };
+
+            for (di in cvs) {
+                graphdata[di]['values'] = cvs[di];
+                graphdata[di]['values'].sort(function(a, b) { return a[0] - b[0] });
+            };
+
+            console.log(graphdata);
+            d3.select('#chart')
+                .datum(graphdata)
+              .transition().duration(500)
+                .call(chart);
+        };
+
+        function make_graphs() {
+            chart = nv.models.stackedAreaChart()
+                .x(function(d) { return d[0] })
+                .y(function(d) { return d[1] });
+            chart.xAxis.tickFormat(d3.format('i'));
+            chart.yAxis.tickFormat(d3.format('i'));
+            redraw();
+            nv.utils.windowResize(chart.update);
+            start_graphing();
+        };
+
+        function start_graphing() {
+            gid = window.setInterval(redraw, 1000);
+        };
+
+        function stop_graphing() {
+            window.clearInterval(gid);
+        };
+
+        function setup_camera() {
+            $('#disp_camera img').attr('src', 'http://' + client.host() + ':8020/videoView');
+        };
+
+{% endblock %}
+
+{% block documentready_js %}
+            client.after_connected = function () {
+                setup_camera();
+            };
+
+            client.after_codec = function () {
+                client.apply_binding('#disp_controls');
+                // graph stuff
+                for (i in graphdata) {
+                    k = graphdata[i]['key'];
+                    client.varbyname(k).n = 100;
+                };
+                make_graphs();
+            };
+
+{% endblock %}
+{% block display_menu %}
+                <li><a href='#disp_camera'>Camera</a></li>
+{% endblock %}
+{% block display_controls %}
+                <!-- example button control that sends most recent value -->
+                <div var-bind="button=client.varbyname('default_reward_amount').latest_value():lick_output">Give Reward</div>
+                <div var-bind="button=500:lick_input">Trigger lick_input</div>
+                <div var-bind="button=0:lick_input">Zero lick_input</div>
+                <div var-bind="button=1000:lick_input">Max lick_input</div>
+                <div var-bind="check:flag_head_sensing">Head Sensing</div>
+                <h1 class="control_heading">Basics</h1>
+                <div class="multicolumn_block">
+                    <div class="control_column">
+                        <h2 class="control_heading">Reward</h2>
+                        <div var-bind="check:flag_always_reward">Always Reward</div>
+                        <div var-bind="default_alwaysreward_amount">ml</div>
+                        <h3 class="control_heading">Standard Reward</h3>
+                        <div var-bind="reward_min">min</div>
+                        <div var-bind="reward_max">max</div>
+                        <div var-bind="reward_increment">increment</div>
+                        <div var-bind="default_reward_amount">Manual Reward</div>
+                        <div var-bind="button=client.varbyname('default_reward_amount').latest_value():lick_output">Give Reward</div>
+                    </div>
+                    <div class="control_column">
+                        <h2 class="control_heading">Punishment</h2>
+                        <div var-bind="check:flag_punish_lick">Punish Licking</div>
+                        <div var-bind="default_punish_numcycles">N Cycles</div>
+                        <div var-bind="default_timeout_dur">Timeout</div>
+                        <div var-bind="check:flag_postreward_punish">Post-reward Punish</div>
+                        <div var-bind="postreward_punish">N Cycles</div>
+                        <div var-bind="postreward_timeout">Timeout</div>
+                    </div>
+                    <div class="control_column">
+                        <h2 class="control_heading">Timing</h2>
+                        <div var-bind="check:flag_dim_target">Dim Target</div>
+                        <div var-bind="targetdur_time">Target Duration</div>
+                        <div var-bind="distractor_time">Distractor Duration</div>
+                        <div var-bind="reward_time">Licking Duration</div>
+                        <h2 class="control_heading">Stimuli</h2>
+                        <div var-bind="targetprob">Target Prob</div>
+                        <div var-bind="curr_contrast">Distractor Contrast</div>
+                    </div>
+                </div>
+                <h1 class="control_heading">Phase training</h1>
+                <div var-bind="check:flag_automate">Automate Training</div>
+                <div class="multicolumn_block">
+                    <div class="control_column">
+                        <h2 class="control_heading">Manual Training</h2>
+                        <div var-bind="check:flag_prereward">Pre Reward</div>
+                        <div var-bind="check:flag_target_training">Target Training</div>
+                        <div var-bind="check:flag_contrast_training">Contrast Training</div>
+                        <div var-bind="check:flag_always_reward">Always Reward</div>
+                        <div var-bind="check:flag_punish_lick">Punish Licking</div>
+                        <div var-bind="check:flag_postreward_punish">Post-reward Punish</div>
+                        <div var-bind="phases_completed">Phases Completed</div>
+                        <div var-bind="threshold">Threshold</div>
+                        <div var-bind="min_for_criterion">Min Trials for Criterion</div>
+                    </div>
+                    <div class="control_column">
+                        <h2 class="control_heading">Phase Transition</h2>
+                        <div var-bind="correct_lick">Correct Lick</div>
+                        <div var-bind="correct_ignore">Correct Ignore</div>
+                        <div var-bind="bad_lick">Bad Lick</div>
+                        <div var-bind="bad_ignore">Bad Ignore</div>
+                        <div var-bind="criterion_count">Criterion Count</div>
+                        <div var-bind="criterion_met">Criterion Met</div>
+                    </div>
+                </div>
+                <h1 class="control_heading">Phases</h1>
+                <div class="multicolumn_block">
+                    <div class="control_column">
+                        <h2 class="control_heading">Target Prob</h2>
+                        <div var-bind="targetprob">Target Prob</div>
+                        <div var-bind="targetprob_up_thresh">Up threshold</div>
+                        <div var-bind="targetprob_down_thresh">Down threshold</div>
+                        <div var-bind="targetprob_upper">Upper Bound</div>
+                        <div var-bind="targetprob_lower">Lower Bound</div>
+                        <div var-bind="targetprob_stepsize">Increment</div>
+                        <div var-bind="progress">Current Tracked</div>
+                        <div var-bind="curr_progress">Current Overall Success</div>
+                    </div>
+                    <div class="control_column">
+                        <h2 class="control_heading">Contrast</h2>
+                        <div var-bind="curr_contrast">Distractor Contrast</div>
+                        <div var-bind="contrast_up_thresh">Up threshold</div>
+                        <div var-bind="contrast_down_thresh">Down threshold</div>
+                        <div var-bind="contrast_upper">Upper Bound</div>
+                        <div var-bind="contrast_lower">Lower Bound</div>
+                        <div var-bind="contrast_stepsize">Increment</div>
+                        <div var-bind="distractor_perf">Current Tracked</div>
+                        <div var-bind="curr_distractor_perf">Current Overall Success</div>
+                    </div>
+                </div>
+                <h1 class="control_heading">IO</h1>
+                <div class="multicolumn_block">
+                    <div class="control_column">
+                        <h2 class="control_heading">Head Sensor</h2>
+                        <div var-bind="head_input">Value</div>
+                        <div var-bind="headsensor_min">Min</div>
+                        <div var-bind="headsensor_max">Max</div>
+                        <div var-bind="button=500:head_input">Trigger</div>
+                        <div var-bind="button=0:head_input">Zero</div>
+                        <div var-bind="button=1000:head_input">Max</div>
+                    </div>
+                    <div class="control_column">
+                        <h2 class="control_heading">Lick Sensor</h2>
+                        <div var-bind="lick_input">Value</div>
+                        <div var-bind="licksensor_min">Min</div>
+                        <div var-bind="licksensor_max">Max</div>
+                        <div var-bind="button=500:lick_input">Trigger</div>
+                        <div var-bind="button=0:lick_input">Zero</div>
+                        <div var-bind="button=1000:lick_input">Max</div>
+                    </div>
+                </div>
+{% endblock %}
+{% block display_items %}
+            <div id="disp_camera" class=disp_camera">
+                <img src=""></img>
+            </div>
+{% endblock %}
