@@ -19,7 +19,7 @@
 {% block display_controls %}
                 <!-- example button control that sends most recent value -->
                 <div var-bind="button=client.varbyname('reward_duration').latest_value():LickOutput1">Give Reward</div>
-                <div var-bind="button=1000:LickInput">Trigger LickInput</div>
+                <div var-bind="button=0:LickInput2">Trigger LickInput2</div>
                 <h1 class="control_heading">Basics</h1>
                 <div class="multicolumn_block">
                     <div class="control_column">
@@ -56,8 +56,8 @@
                 <div class="multicolumn_block">
                     <div class="control_column">
                         <h2 class="control_heading">Phidget</h2>
-                        <div var-bind="LickInput">LickInput</div>
-                        <div var-bind="button=1000:LickInput">Trigger Lick</div>
+                        <div var-bind="LickInput2">LickInput2</div>
+                        <div var-bind="button=0:LickInput2">Trigger Lick</div>
                         <div var-bind="MotionInput1">Motion1</div>
                         <div var-bind="MotionInput2">Motion2</div>
                         <div var-bind="RefMotionAxis1">RefMotion2</div>
