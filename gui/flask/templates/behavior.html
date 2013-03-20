@@ -10,113 +10,6 @@
 #}
 
 {% block head_js %}
-        var gid;
-        var graphdata = [
-            {'key': 'correct_lick', 'values': []},
-            {'key': 'correct_ignore', 'values': []},
-            {'key': 'bad_lick', 'values': []},
-            {'key': 'bad_ignore', 'values': []},
-        ];
-
-        var chart;
-
-        function getvalue(data, di, index) {
-            if (index >= data[di]['values'].length) {
-                return [false, data[di]['values'][data[di]['values'].length - 1]];
-            } else {
-                return [true, data[di]['values'][index]];
-            };
-        };
-
-        function redraw() {
-            // copy data
-            mi = 0;
-            inds = {};
-            cvs = {};
-            for (i in graphdata) {
-                vn = graphdata[i]['key']
-                vs = [];
-                v = client.varbyname(vn);
-                evs = v.events();
-                for (vi in evs) {
-                    // TODO value checking
-                    vs.push([evs[vi].time, evs[vi].value]);
-                };
-                vs.sort(function(a, b) { return a[0] - b[0]; });
-                graphdata[i]['values'] = vs;
-                mi = Math.max(mi, vs.length);
-                //inds[graphdata[i]['key']] = 0;
-                inds[i] = 0;
-                cvs[i] = [];
-            };
-            // prep data
-            alldone = false;
-            rs = {};
-            values = {};
-            while (!alldone) {
-                // get values for all data
-                mt = Infinity;
-                mdi = 0;
-                for (di in inds) {
-                    r = getvalue(graphdata, di, inds[di]);
-                    rs[di] = r[0];
-                    values[di] = r[1];
-                    // find one with lowest time
-                    if ((r[1][0] < mt) && (r[0])) {
-                        mt = r[1][0];
-                        mdi = di;
-                    };
-                };
-                alldone = true;
-                for (i in rs) {
-                    alldone = alldone && (!rs[i]);
-                };
-                if (alldone) {
-                    break;
-                };
-                // match all others to that
-                for (di in inds) {
-                    cvs[di].push([mt, values[di][1]]);
-                };
-                // increment that time for that one
-                inds[mdi] += 1;
-                alldone = true;
-                for (i in rs) {
-                    alldone = alldone && (!rs[i]);
-                };
-            };
-
-            for (di in cvs) {
-                graphdata[di]['values'] = cvs[di];
-                graphdata[di]['values'].sort(function(a, b) { return a[0] - b[0] });
-            };
-
-            console.log(graphdata);
-            d3.select('#chart')
-                .datum(graphdata)
-              .transition().duration(500)
-                .call(chart);
-        };
-
-        function make_graphs() {
-            chart = nv.models.stackedAreaChart()
-                .x(function(d) { return d[0] })
-                .y(function(d) { return d[1] });
-            chart.xAxis.tickFormat(d3.format('i'));
-            chart.yAxis.tickFormat(d3.format('i'));
-            redraw();
-            nv.utils.windowResize(chart.update);
-            start_graphing();
-        };
-
-        function start_graphing() {
-            gid = window.setInterval(redraw, 1000);
-        };
-
-        function stop_graphing() {
-            window.clearInterval(gid);
-        };
-
         function setup_camera() {
             $('#disp_camera img').attr('src', 'http://' + client.host() + ':8020/videoView');
         };
@@ -130,18 +23,14 @@
 
             client.after_codec = function () {
                 client.apply_binding('#disp_controls');
-                // graph stuff
-                for (i in graphdata) {
-                    k = graphdata[i]['key'];
-                    client.varbyname(k).n = 100;
-                };
-                make_graphs();
+                client.add_graph(['correct_lick', 'bad_lick', 'correct_ignore', 'bad_ignore'], 'stacked');
             };
-
 {% endblock %}
+
 {% block display_menu %}
                 <li><a href='#disp_camera'>Camera</a></li>
 {% endblock %}
+
 {% block display_controls %}
                 <!-- example button control that sends most recent value -->
                 <div var-bind="button=client.varbyname('default_reward_amount').latest_value():lick_output">Give Reward</div>
@@ -254,6 +143,7 @@
                     </div>
                 </div>
 {% endblock %}
+
 {% block display_items %}
             <div id="disp_camera" class=disp_camera">
                 <img src=""></img>

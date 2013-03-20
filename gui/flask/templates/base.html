@@ -57,6 +57,15 @@
         $.pnotify.defaults.styling = "jqueryui";
         var client; // make this global
 
+
+        function start_graphing() {
+            client.start_graphing();
+        };
+
+        function stop_graphing() {
+            client.stop_graphing();
+        };
+
         {% block head_js %}
         {% endblock %}
 
