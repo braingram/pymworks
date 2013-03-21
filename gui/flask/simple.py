@@ -20,6 +20,7 @@ Write
 import logging
 logging.basicConfig(level=logging.DEBUG)
 import os
+import pickle
 
 import flask
 import gevent
@@ -37,6 +38,8 @@ import pymworks
 
 app = flask.Flask('pymworks client')
 gevent.monkey.patch_all()
+
+animals_filename = 'animals.p'
 
 
 def fnfilter(fn):
@@ -63,6 +66,29 @@ def default():
 @app.route('/t/<template>')
 def template(template):
     return flask.render_template(template)
+
+
+@app.route('/a/')
+def animal_selection():
+    # load animals
+    with open(animals_filename, 'r') as f:
+        animals = pickle.load(f)
+    pass
+
+
+@app.route('/a/<animal>')
+def select_animal(animal):
+    # load animals
+    with open(animals_filename, 'r') as f:
+        animals = pickle.load(f)
+    if animal in animals:
+        cfg = animals[animal]
+        if 'animal' not in cfg:
+            cfg['animal'] = animal
+        t = cfg.get('template', 'behavior.html')
+        return flask.render_template(t, animal=animal, config=cfg)
+    else:
+        return flask.abort(404)
 
 
 class ClientNamespace(BaseNamespace):

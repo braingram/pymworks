@@ -17,14 +17,16 @@
 {% endblock %}
 
 {% block documentready_js %}
-            client.after_connected = function () {
-                setup_camera();
-            };
+            $(client).on('after:connected', setup_camera);
+            //client.after_connected = function () {
+            //    setup_camera();
+            //};
 
-            client.after_codec = function () {
+            $(client).on('after:codec', function () {
+            //client.after_codec = function () {
                 client.apply_binding('#disp_controls');
                 client.add_graph(['correct_lick', 'bad_lick', 'correct_ignore', 'bad_ignore'], 'stacked');
-            };
+            });
 {% endblock %}
 
 {% block display_menu %}

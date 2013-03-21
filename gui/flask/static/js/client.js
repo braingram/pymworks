@@ -41,6 +41,31 @@ mworks.utils = (function ($) {
         return true;
     };
 
+    utils.find_most_recent = function (a, test) {
+        if (a.length === 0) {
+            return null;
+        };
+        if (test) {
+            a = a.filter(test);
+        };
+        if (a.length === 0) {
+            return null;
+        };
+        a.sort();
+        return a[a.length - 1];
+    };
+
+    utils.make_filename = function (animal, suffix) {
+        if (!suffix) {
+            suffix = '';
+        };
+        d = new Date();
+        y = d.getFullYear() - 2000;
+        m = d.getMonth() + 1;
+        d = d.getDate();
+        return animal + '_' + (y < 10 ? '0' : '' ) + y + (m < 10 ? '0' : '') + m + (d < 10 ? '0' : '') + d + suffix;
+    };
+
     return utils;
 }(jQuery));
 
@@ -269,9 +294,9 @@ mworks.client = (function () {
     client.unstored_events = [];
 
     // these will be called after their respective state changes
-    client.after_connected = null;
-    client.after_loaded = null;
-    client.after_protocols = null;
+    //client.after_connected = null;
+    //client.after_loaded = null;
+    //client.after_protocols = null;
 
     client.bindings = {};
 
@@ -324,7 +349,11 @@ mworks.client = (function () {
         });
     };
 
+    client.error = function (msg) {
+    };
+
     client.throw = function (msg) {
+        client.error(msg);
         throw msg;
     };
 
@@ -382,41 +411,102 @@ mworks.client = (function () {
             client.connect();
         };
         if ('autoload_experiment' in config) {
-            client.after_connected = function () {
+            // only do this once
+            $(client).one('after:connected', function () {
+            //client.after_connected = function () {
                 console.log("after_connected... ");
                 client.load_experiment();
-            };
+            });
             if (client.connected()) {
-                client.after_connected();
+                $(client).trigger('after:connected');
+                //client.after_connected();
             };
         };
-        client.after_loaded = function () {
+        /*
+        $(client).on('after:loaded', function () {
+        //client.after_loaded = function () {
             console.log("after_loaded...");
             if ('autoload_variableset' in config) {
                 client.load_variableset();
             };
-            if ('autosave' in config) {
+            if ('autosave_datafile' in config) {
                 client.open_datafile();
             };
-            /*
-            if ('autostart' in config) {
-                client.start_experiment();
-            };
-            */
-        };
+        });
+        */
         if (client.loaded()) {
-            client.after_loaded();
+            $(client).trigger('after:loaded');
+            //client.after_loaded();
+        };
+
+        // autoload_variableset
+        if ('autoload_variableset' in config) {
+            // only do this once
+            $(client).one('after:variablesets', function () {
+                console.log("after:variablesets");
+                // if defined, load that
+                if (client.variableset() === "") {
+                    // else find most recent
+                    if ('animal' in config) {
+                        test = function (i) { return i.indexOf(config['animal']) !== -1; };
+                    } else {
+                        test = undefined;
+                    };
+                    mr = mworks.utils.find_most_recent(client.variablesets(), test);
+                    if (mr !== null) {
+                        client.variableset(mr);
+                        client.load_variableset();
+                    } else {
+                        // TODO error
+                        client.error('Failed to find recent variableset');
+                        console.log('Failed to find recent variableset');
+                    };
+                };
+                // autosave_variableset
+                if ('autosave_variableset' in config) {
+                    if ('animal' in config) {
+                        fn = mworks.utils.make_filename(config['animal'], '_vars');
+                        if (client.variableset() === fn) {
+                            client.save_variableset();
+                        } else {
+                            client.create_variableset(fn);
+                        };
+                    } else {
+                        // TODO error
+                        client.error('Failed to autosave variableset, no animal defined in config');
+                        console.log('Failed to autosave variableset, no animal defined in config');
+                    };
+                };
+            });
+        };
+
+        // autosave_datafile
+        if ('autosave_datafile' in config) {
+            $(client).one('after:loaded', function () {
+                // start streaming
+                if (client.datafile() === '') {
+                    if ('animal' in config) {
+                        client.datafile(mworks.utils.make_filename(config['animal']));
+                    } else {
+                        // TODO error
+                        client.error('Failed to autosave datafile, no animal defined in config');
+                        console.log('Failed to autosave datafile, no animal defined in config');
+                    };
+                };
+                client.open_datafile();
+            });
         };
 
         if ('autostart' in config) {
-            client.after_protocols = function () {
+            $(client).one('after:protocols', function () {
+            //client.after_protocols = function () {
                 console.log("after_protocols...");
                 client.start_experiment();
-                client.after_protocols = null;
-            };
+            });
             for (i in client.protocols()) {
                 if (client.protocol() == client.protocols()[i]) {
-                    client.after_protocols();
+                    $(client).trigger('after:protocols');
+                    //client.after_protocols();
                     break;
                 };
             };
@@ -433,9 +523,10 @@ mworks.client = (function () {
         if ('loaded' in state) {
             if (Boolean(state.loaded) != client.loaded()) {
                 client.loaded(Boolean(state.loaded));
-                if (client.loaded() & (client.after_loaded != null)) {
-                    client.after_loaded();
-                };
+                $(client).trigger('after:loaded');
+                //if (client.loaded() & (client.after_loaded != null)) {
+                //    client.after_loaded();
+                //};
             };
         };
         if ('running' in state) {
@@ -470,19 +561,22 @@ mworks.client = (function () {
                         };
                     };
                 };
-                if (client.after_protocols != null) {
-                    client.after_protocols();
-                };
+                $(client).trigger('after:protocols');
+                //if (client.after_protocols != null) {
+                //    client.after_protocols();
+                //};
             };
         };
         if ('saved variables' in state) {
             if (!(mworks.utils.array_equal(state['saved variables'], client.variablesets()))) {
                 client.variablesets.removeAll();
+                client.variablesets.push(""); // include a blank one
                 for (i in state['saved variables']) {
                     if (!(state['saved variables'][i] == null)) {
                         client.variablesets.push(state['saved variables'][i]);
                     };
                 };
+                $(client).trigger('after:variablesets');
             };
         };
         if ('current protocol' in state) {
@@ -494,6 +588,10 @@ mworks.client = (function () {
             if (state.datafile != client.datafile()) {
                 client.datafile(state.datafile);
             };
+        };
+        if ('datafile error' in state) {
+            client.error('datafile error:' + state['datafile']);
+            console.log({'datafile error': state});
         };
         /*
          * datafile error
@@ -524,9 +622,10 @@ mworks.client = (function () {
                         client.unstored_events.push(event);
                     };
                 };
-                if (client.after_codec != null) {
-                    client.after_codec();
-                };
+                $(client).trigger('after:codec');
+                //if (client.after_codec != null) {
+                //    client.after_codec();
+                //};
             };
         };
     };
@@ -629,9 +728,12 @@ mworks.client = (function () {
         
         client.socket.on('iostatus', function (iostatus) {
             client.connected(iostatus);
-            if (client.connected() & (client.after_connected != null)) {
-                client.after_connected();
+            if (client.connected()) {
+                $(client).trigger('after:connected');
             };
+            //if (client.connected() & (client.after_connected != null)) {
+            //    client.after_connected();
+            //};
         });
     };
 
@@ -743,6 +845,15 @@ mworks.client = (function () {
         client.require_socket();
         client.require_connected();
         client.socket.emit('command', 'load_variables', client.variableset());
+    };
+
+    client.create_variableset = function (name) {
+        console.log('create_variableset: ' + name);
+        client.require_socket();
+        client.require_connected();
+        client.socket.emit('command', 'save_variables',
+                name, client.variableset_overwrite());
+        client.variableset(name);
     };
 
     client.save_variableset = function () {

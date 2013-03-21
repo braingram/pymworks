@@ -10,10 +10,11 @@
 #}
 
 {% block documentready_js %}
-            client.after_codec = function () {
+            $(client).on('after:codec', function () {
+            //client.after_codec = function () {
                 client.apply_binding('#disp_controls');
                 client.add_graph(['success', 'ignore', 'failure', 'correctIgnore'], 'stacked');
-            };
+            });
 
 {% endblock %}
 {% block display_controls %}

@@ -1,8 +1,12 @@
 <!doctype html>
 <html lang="us">
 <head>
-	<meta charset="utf-8">
+    <meta charset="utf-8">
+    {% if animal %}
+    <title>{{ animal }}</title>
+    {% else %}
     <title>MWorks Client</title>
+    {% endif %}
     <script type="text/javascript"
         src="{{ url_for('static', filename='js/jquery.js') }}"></script>
     <script type="text/javascript"
@@ -96,13 +100,12 @@
                 $('#filetree').dialog('open');
             };
 
-            client.throw = function (msg) {
+            client.error = function (msg) {
                 $.pnotify({
                     title: 'Error',
                     text: msg,
                     type: 'error',
                 });
-                throw msg;
             };
             // must be done AFTER redefining select_experiment :-/ 
             client.apply_binding('#toolbar');
@@ -111,6 +114,9 @@
 
             {% block documentready_js %}
             {% endblock %}
+            {% if config %}
+            client.load_config({{ config|tojson|safe }});
+            {% endif %}
         });
     </script>
 </head>
@@ -167,6 +173,8 @@
                 <input class="experiment_path"
                     data-bind="value: experiment_path"></input>
                 <button class="load_experiment"
+                    data-bind="click: load_experiment">Load</button>
+                <button class="select_experiment"
                     data-bind="click: select_experiment">Select Experiment
                 </button>
                 <span>Protocol:
@@ -179,6 +187,9 @@
             <!-- Variables -->
             <div id="tb_variableset" class="tb_variableset">
                 <span>Variables:
+                    <form data-bind="submit: function (f) { client.create_variableset($('.name', f).val()); }">
+                        <input class="name"></input>
+                    </form>
                 <select class="variableset"
                     title="Select variableset"
                     data-bind="options: variablesets,
@@ -186,7 +197,7 @@
                 </select>
                 <input class="variableset_overwrite" type="checkbox"
                     title="Overwrite Variables?"
-                    data-bind="checked: variableset_overwrite"></input>
+                    data-bind="checked: variableset_overwrite">Overwrite?</input>
                 <button class="load_variableset"
                     title="Load Variables"
                     data-bind="click: load_variableset">Load</button>
@@ -202,7 +213,7 @@
                 <input class="datafile" data-bind="value: datafile"></input>
                 <input class="datafile_overwrite" type="checkbox"
                     title="Overwrite Datafile?"
-                    data-bind="checked: datafile_overwrite"></input>
+                    data-bind="checked: datafile_overwrite">Overwrite?</input>
                 <button class="open_datafile" data-bind="click: open_datafile">
                 Open</button>
                 <button class="close_datafile" data-bind="click: close_datafile">
