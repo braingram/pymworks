@@ -818,15 +818,24 @@ mworks.client = (function () {
         console.log('create_variableset: ' + name);
         client.require_socket();
         client.require_connected();
+        // check if variableset is in variablesets
+        if ((!(client.variableset_overwrite())) && ($.inArray(name, client.variablesets()) !== -1)) {
+            client.throw("Cannot create variableset " + name + " without overwriting");
+        };
         client.socket.emit('command', 'save_variables',
                 name, client.variableset_overwrite());
-        client.variableset(name);
+        $(client).one('after:variablesets', function () {
+            client.variableset(name);
+        });
         client.info('Creating variableset: ' + name);
     };
 
     client.save_variableset = function () {
         client.require_socket();
         client.require_connected();
+        if ((!(client.variableset_overwrite())) && ($.inArray(client.variableset(), client.variablesets()) !== -1)) {
+            client.throw("Cannot save variableset " + client.variableset() + " without overwriting");
+        };
         client.socket.emit('command', 'save_variables',
                 client.variableset(), client.variableset_overwrite());
         client.info('Saving variableset: ' + client.variableset());
