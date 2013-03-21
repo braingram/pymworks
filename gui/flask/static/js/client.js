@@ -350,6 +350,11 @@ mworks.client = (function () {
     };
 
     client.error = function (msg) {
+        console.log(msg);
+    };
+
+    client.info = function (msg) {
+        console.log(msg);
     };
 
     client.throw = function (msg) {
@@ -407,9 +412,45 @@ mworks.client = (function () {
             client.protocol(config['protocol']);
         };
 
-        if ('autoconnect' in config) {
-            client.connect();
+        if ('animal' in config) {
+            // possibly define:
+            // datafile
+            if (client.datafile() === '') {
+                client.datafile(mworks.utils.make_filename(config['animal']));
+            };
+            // variableset: get most recent
+            $(client).one('after:variablesets', function () {
+                if (client.variableset() === "") {
+                    mr = mworks.utils.find_most_recent(client.variablesets(), function (i) {
+                        return i.indexOf(config['animal']) !== -1;
+                    });
+                    if (mr !== null) {
+                        client.variableset(mr);
+                        client.load_variableset();
+                        client.info('Loaded variableset: ' + client.variableset());
+                    } else {
+                        client.error('Failed to find recent variableset');
+                        console.log('Failed to find recent variableset');
+                    };
+                    // autosave
+                    fn = mworks.utils.make_filename(config['animal'], '_vars');
+                    if (client.variableset() === fn) {
+                        client.save_variableset();
+                    } else {
+                        client.create_variableset(fn);
+                    };
+                    client.info('Saved variableset: ' + client.variableset());
+                };
+            });
         };
+
+        // autosave_datafile
+        if ('autosave_datafile' in config) {
+            $(client).one('after:loaded', function () {
+                client.open_datafile();
+            });
+        };
+
         if ('autoload_experiment' in config) {
             // only do this once
             $(client).one('after:connected', function () {
@@ -434,67 +475,14 @@ mworks.client = (function () {
             };
         });
         */
+
+        if ('autoconnect' in config) {
+            client.connect();
+        };
+
         if (client.loaded()) {
             $(client).trigger('after:loaded');
             //client.after_loaded();
-        };
-
-        // autoload_variableset
-        if ('autoload_variableset' in config) {
-            // only do this once
-            $(client).one('after:variablesets', function () {
-                console.log("after:variablesets");
-                // if defined, load that
-                if (client.variableset() === "") {
-                    // else find most recent
-                    if ('animal' in config) {
-                        test = function (i) { return i.indexOf(config['animal']) !== -1; };
-                    } else {
-                        test = undefined;
-                    };
-                    mr = mworks.utils.find_most_recent(client.variablesets(), test);
-                    if (mr !== null) {
-                        client.variableset(mr);
-                        client.load_variableset();
-                    } else {
-                        // TODO error
-                        client.error('Failed to find recent variableset');
-                        console.log('Failed to find recent variableset');
-                    };
-                };
-                // autosave_variableset
-                if ('autosave_variableset' in config) {
-                    if ('animal' in config) {
-                        fn = mworks.utils.make_filename(config['animal'], '_vars');
-                        if (client.variableset() === fn) {
-                            client.save_variableset();
-                        } else {
-                            client.create_variableset(fn);
-                        };
-                    } else {
-                        // TODO error
-                        client.error('Failed to autosave variableset, no animal defined in config');
-                        console.log('Failed to autosave variableset, no animal defined in config');
-                    };
-                };
-            });
-        };
-
-        // autosave_datafile
-        if ('autosave_datafile' in config) {
-            $(client).one('after:loaded', function () {
-                // start streaming
-                if (client.datafile() === '') {
-                    if ('animal' in config) {
-                        client.datafile(mworks.utils.make_filename(config['animal']));
-                    } else {
-                        // TODO error
-                        client.error('Failed to autosave datafile, no animal defined in config');
-                        console.log('Failed to autosave datafile, no animal defined in config');
-                    };
-                };
-                client.open_datafile();
-            });
         };
 
         if ('autostart' in config) {

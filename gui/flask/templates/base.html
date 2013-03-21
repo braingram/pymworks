@@ -107,6 +107,13 @@
                     type: 'error',
                 });
             };
+
+            client.info = function (msg) {
+                $.pnotify({
+                    title: 'Info',
+                    text: msg,
+                });
+            };
             // must be done AFTER redefining select_experiment :-/ 
             client.apply_binding('#toolbar');
             client.apply_binding('#disp_variables');
