@@ -4,7 +4,7 @@ p1
 (dp2
 S'experiment_path'
 p3
-S'~/Repositories/coxlab/protocols/behavior/go_nogo_ab/gonogo_ab_noio.xml'
+S'~/Repositories/coxlab/protocols/behavior/go_nogo_ab/gonogo_ab.xml'
 p4
 sS'autosave_variableset'
 p5
@@ -33,14 +33,15 @@ ssS'U1'
 p14
 (dp15
 g3
-g4
+S'~/Repositories/coxlab/protocols/behavior/go_nogo_ab/gonogo_ab.xml'
+p16
 sg5
 I01
 sg6
 I00
 sg7
 S'setup8'
-p16
+p17
 sg9
 I01
 sg10

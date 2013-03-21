@@ -552,8 +552,10 @@ mworks.client = (function () {
             };
         };
         if ('datafile error' in state) {
-            client.error('datafile error:' + state['datafile']);
-            console.log({'datafile error': state});
+            if (state['datafile error']) {
+                client.error('datafile error:' + state['datafile']);
+                console.log({'datafile error': state});
+            };
         };
         /*
          * datafile error
@@ -819,7 +821,7 @@ mworks.client = (function () {
         client.socket.emit('command', 'save_variables',
                 name, client.variableset_overwrite());
         client.variableset(name);
-        client.info('Creating variableset: ' + client.variableset());
+        client.info('Creating variableset: ' + name);
     };
 
     client.save_variableset = function () {
