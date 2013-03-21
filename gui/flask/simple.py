@@ -65,6 +65,7 @@ def default():
 
 @app.route('/t/<template>')
 def template(template):
+    print template
     return flask.render_template(template)
 
 
@@ -86,7 +87,7 @@ def select_animal(animal):
         if 'animal' not in cfg:
             cfg['animal'] = animal
         t = cfg.get('template', 'behavior.html')
-        return flask.render_template(t, animal=animal, config=cfg)
+        return flask.render_template(t, animal=animal, session_config=cfg)
     else:
         return flask.abort(404)
 

@@ -293,11 +293,6 @@ mworks.client = (function () {
     client.codec = {};
     client.unstored_events = [];
 
-    // these will be called after their respective state changes
-    //client.after_connected = null;
-    //client.after_loaded = null;
-    //client.after_protocols = null;
-
     client.bindings = {};
 
     client.apply_binding = function (selector) {
@@ -421,25 +416,27 @@ mworks.client = (function () {
             // variableset: get most recent
             $(client).one('after:variablesets', function () {
                 if (client.variableset() === "") {
-                    mr = mworks.utils.find_most_recent(client.variablesets(), function (i) {
-                        return i.indexOf(config['animal']) !== -1;
-                    });
-                    if (mr !== null) {
-                        client.variableset(mr);
-                        client.load_variableset();
-                        client.info('Loaded variableset: ' + client.variableset());
-                    } else {
-                        client.error('Failed to find recent variableset');
-                        console.log('Failed to find recent variableset');
+                    if ('autoload_variableset' in config) {
+                        mr = mworks.utils.find_most_recent(client.variablesets(), function (i) {
+                            return i.indexOf(config['animal']) !== -1;
+                        });
+                        if (mr !== null) {
+                            client.variableset(mr);
+                            client.load_variableset();
+                        } else {
+                            client.error('Failed to find recent variableset');
+                            console.log('Failed to find recent variableset');
+                        };
                     };
                     // autosave
-                    fn = mworks.utils.make_filename(config['animal'], '_vars');
-                    if (client.variableset() === fn) {
-                        client.save_variableset();
-                    } else {
-                        client.create_variableset(fn);
+                    if ('autosave_variableset' in config) {
+                        fn = mworks.utils.make_filename(config['animal'], '_vars');
+                        if (client.variableset() === fn) {
+                            client.save_variableset();
+                        } else {
+                            client.create_variableset(fn);
+                        };
                     };
-                    client.info('Saved variableset: ' + client.variableset());
                 };
             });
         };
@@ -454,27 +451,13 @@ mworks.client = (function () {
         if ('autoload_experiment' in config) {
             // only do this once
             $(client).one('after:connected', function () {
-            //client.after_connected = function () {
-                console.log("after_connected... ");
+                console.log("after:connected... ");
                 client.load_experiment();
             });
             if (client.connected()) {
                 $(client).trigger('after:connected');
-                //client.after_connected();
             };
         };
-        /*
-        $(client).on('after:loaded', function () {
-        //client.after_loaded = function () {
-            console.log("after_loaded...");
-            if ('autoload_variableset' in config) {
-                client.load_variableset();
-            };
-            if ('autosave_datafile' in config) {
-                client.open_datafile();
-            };
-        });
-        */
 
         if ('autoconnect' in config) {
             client.connect();
@@ -482,19 +465,16 @@ mworks.client = (function () {
 
         if (client.loaded()) {
             $(client).trigger('after:loaded');
-            //client.after_loaded();
         };
 
         if ('autostart' in config) {
             $(client).one('after:protocols', function () {
-            //client.after_protocols = function () {
-                console.log("after_protocols...");
+                console.log("after:protocols...");
                 client.start_experiment();
             });
             for (i in client.protocols()) {
                 if (client.protocol() == client.protocols()[i]) {
                     $(client).trigger('after:protocols');
-                    //client.after_protocols();
                     break;
                 };
             };
@@ -512,9 +492,6 @@ mworks.client = (function () {
             if (Boolean(state.loaded) != client.loaded()) {
                 client.loaded(Boolean(state.loaded));
                 $(client).trigger('after:loaded');
-                //if (client.loaded() & (client.after_loaded != null)) {
-                //    client.after_loaded();
-                //};
             };
         };
         if ('running' in state) {
@@ -550,9 +527,6 @@ mworks.client = (function () {
                     };
                 };
                 $(client).trigger('after:protocols');
-                //if (client.after_protocols != null) {
-                //    client.after_protocols();
-                //};
             };
         };
         if ('saved variables' in state) {
@@ -611,9 +585,6 @@ mworks.client = (function () {
                     };
                 };
                 $(client).trigger('after:codec');
-                //if (client.after_codec != null) {
-                //    client.after_codec();
-                //};
             };
         };
     };
@@ -719,9 +690,6 @@ mworks.client = (function () {
             if (client.connected()) {
                 $(client).trigger('after:connected');
             };
-            //if (client.connected() & (client.after_connected != null)) {
-            //    client.after_connected();
-            //};
         });
     };
 
@@ -739,6 +707,7 @@ mworks.client = (function () {
         client.socket.emit('command', 'user', client.user());
         client.socket.emit('command', 'startserver', client.startserver());
         client.socket.emit('command', 'connect');
+        client.info('Connecting to ' + client.host() + ':' + client.port() + ' as ' + client.user());
     };
 
     client.disconnect = function () {
@@ -763,6 +732,7 @@ mworks.client = (function () {
         client.require_socket();
         client.require_connected();
         client.socket.emit('command', 'load_experiment', client.experiment_path());
+        client.info('Loading experiment: ' + client.experiment_path());
     };
 
     client.select_experiment = function () {
@@ -780,12 +750,14 @@ mworks.client = (function () {
                 };
             };
         };
+        client.info('Starting experiment: ' + client.protocol());
     };
 
     client.stop_experiment = function () {
         client.require_socket();
         client.require_connected();
         client.socket.emit('command', 'stop_experiment');
+        client.info('Stopping experiment: ' + client.protocol());
     };
 
     client.toggle_running = function () {
@@ -808,12 +780,14 @@ mworks.client = (function () {
         client.require_socket();
         client.require_connected();
         client.socket.emit('command', 'pause_experiment');
+        client.info('Pausing');
     };
 
     client.resume_experiment = function () {
         client.require_socket();
         client.require_connected();
         client.socket.emit('command', 'resume_experiment');
+        client.info('Resuming');
     };
 
     client.open_datafile = function () {
@@ -821,18 +795,21 @@ mworks.client = (function () {
         client.require_connected();
         client.socket.emit('command', 'open_datafile', 
                 client.datafile(), client.datafile_overwrite());
+        client.info('Opening datafile: ' + client.datafile());
     };
 
     client.close_datafile = function () {
         client.require_socket();
         client.require_connected();
         client.socket.emit('command', 'close_datafile');
+        client.info('Closing datafile: ' + client.datafile());
     };
 
     client.load_variableset = function () {
         client.require_socket();
         client.require_connected();
         client.socket.emit('command', 'load_variables', client.variableset());
+        client.info('Loading variableset: ' + client.variableset());
     };
 
     client.create_variableset = function (name) {
@@ -842,6 +819,7 @@ mworks.client = (function () {
         client.socket.emit('command', 'save_variables',
                 name, client.variableset_overwrite());
         client.variableset(name);
+        client.info('Creating variableset: ' + client.variableset());
     };
 
     client.save_variableset = function () {
@@ -849,12 +827,14 @@ mworks.client = (function () {
         client.require_connected();
         client.socket.emit('command', 'save_variables',
                 client.variableset(), client.variableset_overwrite());
+        client.info('Saving variableset: ' + client.variableset());
     };
 
     client.select_protocol = function () {
         client.require_socket();
         client.require_connected();
         client.socket.emit('command', 'select_protocol', client.protocol());
+        client.info('Protocol selected: ' + client.protocol());
     };
 
     client.add_graph = function (vars, type) {

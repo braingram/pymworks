@@ -2,7 +2,7 @@
 <html lang="us">
 <head>
     <meta charset="utf-8">
-    {% if animal %}
+    {% if animal is defined %}
     <title>{{ animal }}</title>
     {% else %}
     <title>MWorks Client</title>
@@ -121,8 +121,8 @@
 
             {% block documentready_js %}
             {% endblock %}
-            {% if config %}
-            client.load_config({{ config|tojson|safe }});
+            {% if session_config is defined %}
+            client.load_config({{ session_config|tojson|safe }});
             {% endif %}
         });
     </script>
