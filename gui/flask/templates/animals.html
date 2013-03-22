@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="us">
+<head>
+    <meta charset="utf-8">
+    <title>Animals</title>
+    <script type="text/javascript"
+        src="{{ url_for('static', filename='js/jquery.js') }}"></script>
+    <script type="text/javascript"
+        src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script>
+    <script type="text/javascript"
+        src="{{ url_for('static', filename='js/jquery.pnotify.js') }}"></script>
+
+    <script type="text/javascript"
+        src="{{ url_for('static', filename='js/knockout.js') }}"></script>
+    <script type="text/javascript"
+        src="{{ url_for('filetree.static', filename='js/jqueryFileTree.js') }}"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/smoothness/jquery-ui.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.pnotify.default.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.pnotify.default.icons.css') }}" />
+
+    <link href="{{ url_for('filetree.static', filename='css/jqueryFileTree.css') }}" rel="stylesheet"></link>
+
+    <style>
+        body {
+            font: 62.5% "Trebuchet MS", sans-serif;
+        }
+    </style>
+
+    <script>
+        $(document).ready(function () {
+            $('#tabs').tabs();
+            $('#filetree').fileTree({
+                root: '~/Repositories/coxlab/protocols',
+                script: "{{ url_for('filetree.sfiles') }}",
+            }, function (file) {
+                $('#filetree').dialog('close');
+                //client.experiment_path(file);
+                //client.load_experiment();
+            });
+
+            $('#filetree').dialog({
+                autoOpen: false,
+                height: 400,
+            });
+        });
+    </script>
+</head>
+<!--
+Two tabs
+- list animals, showing...
+    - animal (link to page), host, experiment_path, protocol
+- edit/create
+    - all options
+-->
+<body>
+    <div id="tabs">
+        <ul>
+            <li><a href='#animals'>Animals</a></li>
+            <li><a href='#edit'>Edit</a></li>
+        </ul>
+        <div id="animals">
+            <ul class="animal_list">
+                {% for animal in animals %}
+                <li>
+                    <a href="/a/{{ animal }}">{{ animal }}</a>
+                    
+                <li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div id="edit">
+        </div>
+    </div>
+    <!--
+    host port user
+    experiment_path experiment_name
+    variableset variableset_overwrite
+    datafile datafile_overwrite
+    protocol
+    animal
+    autoload_variableset autosave_variableset
+    autosave_datafile
+    autoload_experiment
+    autoconnect
+    autostart
+    -->
+    <div id="filetree" title="Select a file"></div>
+</body>
+</html>
