@@ -144,7 +144,7 @@ class DataFile(Source):
                             "time, and/or value" % self.file.tell())
             return None
 
-    def write_event(self):
+    def write_event(self, event):
         raise NotImplementedError("Datafile does not allow writing")
 
     def get_events(self, key=None, time_range=None):

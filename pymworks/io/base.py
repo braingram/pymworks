@@ -162,7 +162,7 @@ class Sink(IODevice):
         if autoconnect:
             self.connect()
 
-    def write_event(self):
+    def write_event(self, event):
         self.require_connected()
 
 
