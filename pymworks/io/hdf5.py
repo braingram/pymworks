@@ -124,6 +124,7 @@ class HDF5DataFile(datafile.DataFile):
         if not (('w' in self.file.mode) or ('a' in self.file.mode)):
             raise IOError('HDF5DataFile.file is not writable: %s'
                           % self.file.mode)
+        self._setup_file()
         if not isinstance(event, (tuple, list)):
             event = (event, )
         row = self.file.getNode(self._events_path).row
