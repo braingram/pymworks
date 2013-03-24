@@ -58,14 +58,8 @@ _, app = flask_filetree.make_blueprint(
     fnfilter=fnfilter, dfilter=dfilter)
 
 
-@app.route('/', methods=['GET', 'PUT'])
-def default():
-    return flask.render_template("simple.html")
-
-
 @app.route('/t/<template>')
 def template(template):
-    print template
     return flask.render_template(template)
 
 
@@ -74,7 +68,13 @@ def animal_selection():
     # load animals
     with open(animals_filename, 'r') as f:
         animals = pickle.load(f)
-    pass
+    return flask.render_template("animals.html", animals=animals)
+
+
+@app.route('/', methods=['GET', 'PUT'])
+def default():
+    return animal_selection()
+    #return flask.render_template("simple.html")
 
 
 @app.route('/a/<animal>')
