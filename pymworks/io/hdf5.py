@@ -46,11 +46,13 @@ class HDF5Event(tables.IsDescription):
 
 class HDF5DataFile(datafile.DataFile):
     def __init__(self, filename, autoconnect=True, autoresolve=True,
-                 events_path='/mwk/events', values_path='/mwk/values'):
+                 events_path='/mwk/events', values_path='/mwk/values',
+                 vsize=1.0):
         datafile.DataFile.__init__(self, filename,
                                    autoconnect=False, autoresolve=False)
         self._events_path = events_path
         self._values_path = values_path
+        self._vsize = 1.0
         # test if filename is actually a file
         if isinstance(filename, tables.file.File):
             self.file = filename
@@ -98,7 +100,8 @@ class HDF5DataFile(datafile.DataFile):
             if g not in self.file:
                 r, gn = parse_path(g)
                 self.file.createGroup(r, gn)
-            self.file.createVLArray(g, n, tables.VLStringAtom())
+            self.file.createVLArray(g, n, tables.VLStringAtom(),
+                                    expectedsizeinMB=self._vsize)
 
     def _parse_event_row(self, er, vn=None):
         vn = self.file.getNode(self._values_path) if vn is None else vn
@@ -117,7 +120,7 @@ class HDF5DataFile(datafile.DataFile):
         self._event_index += 1
         return self._parse_event_row(en[i])
 
-    def write_event(self, event):
+    def write_event(self, event, flush_every_n=100):
         """
         Can accepts tuples and lists of events
         """
@@ -127,15 +130,21 @@ class HDF5DataFile(datafile.DataFile):
         self._setup_file()
         if not isinstance(event, (tuple, list)):
             event = (event, )
-        row = self.file.getNode(self._events_path).row
+        en = self.file.getNode(self._events_path)
+        row = en.row
         va = self.file.getNode(self._values_path)
-        for e in event:
+        for (i, e) in enumerate(event):
             row['code'] = e.code
             row['time'] = e.time
             vs = pickle.dumps(e.value, 2)
             row['index'] = len(va)
             va.append(vs)
             row.append()
+            if (i % flush_every_n == 0):
+                va.flush()
+                en.flush()
+        va.flush()
+        en.flush()
 
     def get_events(self, key=None, time_range=None):
         ms = make_match_string(key, self.to_code)
