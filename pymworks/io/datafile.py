@@ -68,23 +68,31 @@ def resolve_filename(filename):
     resolving filenames that point to directories to filenames inside that
     directory
     """
+    if not isinstance(filename, (str, unicode)):
+        return filename
     if os.path.isdir(filename):
         d, n = os.path.split(filename)
         return os.path.join(d, n, n)
     return filename
 
 
+def open_filename(fn, *args):
+    if hasattr(fn, 'read'):
+        return fn
+    return open(fn, *args)
+
+
+def filename_name(fn):
+    if hasattr(fn, 'name'):
+        return fn.name
+    return fn
+
+
 class DataFile(Source):
     def __init__(self, filename, autoconnect=True, autoresolve=True):
         Source.__init__(self, autoconnect=False)
-        if hasattr(filename, 'read'):
-            # this is actually a file pointer
-            self.file = filename
-            self.filename = None
-        else:
-            self.filename = resolve_filename(filename) if autoresolve \
-                else filename
-            self.file = None
+        self.filename = resolve_filename(filename) if autoresolve \
+            else filename
         if autoconnect:
             self.connect()
         # for backwards compatibility
@@ -93,8 +101,7 @@ class DataFile(Source):
     def connect(self):
         if self._connected:
             return
-        if self.file is None:
-            self.file = open(self.filename, 'rb')
+        self.file = open_filename(self.filename, 'rb')
         self.ldo = LDOBinary.LDOBinaryUnmarshaler(self.file)
         #self.file.seek(0)
         #self.ldo.read_stream_handler = 0
@@ -169,27 +176,14 @@ class IndexedDataFile(DataFile):
         value = file locations of events
     """
     def __init__(self, filename, autoconnect=True, autoresolve=True,
-                 index=None, check_hash=True):
+                 index_filename=None, check_hash=True):
         DataFile.__init__(self, filename, autoconnect=False,
                           autoresolve=autoresolve)
         self._check_hash = check_hash
-        if index is not None:
-            if hasattr(index, 'read'):
-                self.index_file = index
-                self.index_filename = None
-            else:
-                self.index_filename = index
-                if os.path.exists(index):
-                    self.index_file = open(index, 'rb')
-                else:
-                    self.index_file = index  # will trigger indexing
-        else:
-            self.index_filename = '%s/.%s.index' % \
-                os.path.split(os.path.realpath(self.filename))
-            if os.path.exists(self.index_filename):
-                self.index_file = open(self.index_filename, 'rb')
-            else:
-                self.index_file = self.index_filename
+        self.index_filename = '%s/.%s.index' % \
+            os.path.split(os.path.realpath(filename_name(
+                self.filename))) if index_filename \
+            is None else index_filename
         if autoconnect:
             self.connect()
 
@@ -201,26 +195,26 @@ class IndexedDataFile(DataFile):
 
     def _load_index(self):
         """ Load index from files """
-        if self._check_hash and (self.index_filename is None):
-            raise ValueError("Cannot check has of unknown filename")
-        try:
-            self._index = pickle.load(self.index_file)
-            if type(self._index) != dict:
-                raise TypeError("loaded index(%s) was wrong type: %s" %
-                                (self.index_file, type(self._index)))
-            self._parse_index()
-            if self._check_hash:
-                file_hash = self._hash_file()
-                if self._hash != file_hash:
-                    raise Exception("File hash[%s] != stored hash[%s]" %
-                                    (self._hash, file_hash))
-        except Exception as E:
-            logging.warning("Failed to load index file(%s)[%s]: %s" %
-                            (self.index_file, self.index_filename, E))
-            if (self.index_filename is not None) and \
-                    (os.path.exists(self.index_filename)):
-                os.remove(self.index_filename)
-                self.index_file = open(self.index_filename, 'wb')
+        if hasattr(self.index_filename, 'read') or \
+                os.path.exists(self.index_filename):
+            try:
+                self._index = pickle.load(open_filename(
+                    self.index_filename, 'rb'))
+                if type(self._index) != dict:
+                    raise TypeError("loaded index(%s) was wrong type: %s" %
+                                    (self.index_filename, type(self._index)))
+                self._parse_index()
+                if self._check_hash:
+                    file_hash = self._hash_file()
+                    if self._hash != file_hash:
+                        raise Exception("File hash[%s] != stored hash[%s]" %
+                                        (self._hash, file_hash))
+            except Exception as E:
+                logging.warning("Failed to load index file[%s]: %s" %
+                                (self.index_filename, E))
+                self._index_file()
+        else:
+            logging.debug("Index does not exist: %s" % self.index_filename)
             self._index_file()
 
     def _index_file(self):
@@ -253,7 +247,7 @@ class IndexedDataFile(DataFile):
 
         self._parse_index()
         self._index['_hash'] = self._hash
-        self._save_index(self.index_file)
+        self._save_index(open_filename(self.index_filename, 'wb'))
 
     def _save_index(self, f):
         if not hasattr(f, 'write'):
