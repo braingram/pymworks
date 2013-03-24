@@ -217,6 +217,10 @@ class IndexedDataFile(DataFile):
         except Exception as E:
             logging.warning("Failed to load index file(%s)[%s]: %s" %
                             (self.index_file, self.index_filename, E))
+            if (self.index_filename is not None) and \
+                    (os.path.exists(self.index_filename)):
+                os.remove(self.index_filename)
+                self.index_file = open(self.index_filename, 'wb')
             self._index_file()
 
     def _index_file(self):
