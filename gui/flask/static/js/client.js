@@ -648,11 +648,13 @@ mworks.client = (function () {
 
         client.socket.on('connect', function () {
             console.log('Socket connected');
+            client.info('Socket connected');
             client.socket_connected(true);
         });
 
         client.socket.on('disconnect', function () {
             console.log('Socket disconnected');
+            client.info('Socket disconnected');
             client.socket_connected(false);
         });
 
@@ -715,6 +717,7 @@ mworks.client = (function () {
     client.disconnect = function () {
         client.require_socket();
         client.socket.emit('command', 'disconnect');
+        client.info('Disconnect called on client')
     };
 
     client.toggle_connect = function () {

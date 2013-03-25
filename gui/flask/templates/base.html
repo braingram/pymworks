@@ -265,14 +265,15 @@
                         onclick="start_graphing()">Start Graphing</button>
                     <button class="control_button" title="stop graphing"
                         onclick="stop_graphing()">Stop Graphing</button>
-                </diV>
+                </div>
                 <svg id='chart'></svg>
             </div>
             {% block display_items %}
             {% endblock %}
+        </div>
     </div>
-    <div id="filetree" title="Select a file"></div>
     {% block body %}
     {% endblock %}
+    <div id="filetree" title="Select a file"></div>
 </body>
 </html>

@@ -9,6 +9,19 @@
     body
 #}
 
+{% block head %}
+    <style>
+        #disp_camera {
+            position: fixed;
+            right: 5px;
+            top: 5px;
+        }
+        .client {
+            width: 85%;
+        }
+    </style>
+{% endblock %}
+
 {% block head_js %}
         function setup_camera() {
             $('#disp_camera img').attr('src', 'http://' + client.host() + ':8020/videoView');
@@ -30,7 +43,7 @@
 {% endblock %}
 
 {% block display_menu %}
-                <li><a href='#disp_camera'>Camera</a></li>
+<!--                <li><a href='#disp_camera'>Camera</a></li> -->
 {% endblock %}
 
 {% block display_controls %}
@@ -147,7 +160,13 @@
 {% endblock %}
 
 {% block display_items %}
-            <div id="disp_camera" class=disp_camera">
+<!--            <div id="disp_camera" class=disp_camera">
                 <img src=""></img>
-            </div>
+            </div> -->
+{% endblock %}
+
+{% block body %}
+    <div id="disp_camera" class="disp_camera">
+        <img src="/static/im.jpg"></img>
+    </div>
 {% endblock %}

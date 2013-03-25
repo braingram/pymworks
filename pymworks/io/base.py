@@ -87,10 +87,11 @@ class Source(IODevice):
         return self._rcodec
 
     def process_codec_event(self, event):
-        self._codec = dict([(k, v['tagname']) for k, v in \
-                event.value.iteritems()] + \
-                [(0, '#codec'), (1, '#systemEvent'), \
-                (2, '#components'), (3, '#termination')])
+        self._codec = dict(
+            [(k, v['tagname']) for k, v in
+             event.value.iteritems()] +
+            [(0, '#codec'), (1, '#systemEvent'),
+             (2, '#components'), (3, '#termination')])
 
     def find_codec(self, **kwargs):
         if self._codec is None:
@@ -115,8 +116,8 @@ class Source(IODevice):
     def register_callback(self, key, func):
         if isinstance(key, (str, unicode)):
             if key not in self.codec.values():
-                raise ValueError("String type key[%s] not in codec[%s]" \
-                        % (key, self.codec))
+                raise ValueError("String type key[%s] not in codec[%s]"
+                                 % (key, self.codec))
             key = self.to_code(key)
         #if key in self._callbacks:
         #    raise ValueError("Only one callback[%s] is allowed per key[%s]" \
@@ -128,8 +129,8 @@ class Source(IODevice):
 
     def remove_callback(self, cid):
         if (cid < 0) or (cid >= len(self._callbacks)):
-            raise ValueError("Invalid callback id %s, must be >=0 and <%s" % \
-                    (cid, len(self._callbacks)))
+            raise ValueError("Invalid callback id %s, must be >=0 and <%s" %
+                             (cid, len(self._callbacks)))
         del self._callbacks[cid]
 
     def process_event(self, event):
@@ -139,7 +140,7 @@ class Source(IODevice):
         #if event.code in self._callbacks:
         #    self._callbacks[event.code](event)
         self._mintime = event.time if self._mintime is None \
-                else min(event.time, self._mintime)
+            else min(event.time, self._mintime)
         self._maxtime = max(event.time, self._maxtime)
 
     def update(self, n=100, **kwargs):
