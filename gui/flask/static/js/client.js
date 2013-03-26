@@ -180,14 +180,20 @@ mworks.graph = function (client, vars, type) {
 
     graph.redraw = function () {
         graph.order_data();
-        console.log(graph.data);
+        //console.log(graph.data);
+        d3.select('#chart')
+            .datum(graph.data)
+          .transition().duration(500);
+            //.call(graph.chart);
+        graph.chart.update();
+    };
+
+    graph.start = function () {
+        graph.order_data();
         d3.select('#chart')
             .datum(graph.data)
           .transition().duration(500)
             .call(graph.chart);
-    };
-
-    graph.start = function () {
         graph.gid = window.setInterval(graph.redraw, 1000);
     };
 
