@@ -76,8 +76,9 @@ mworks.graph = function (client, vars, type) {
     graph.type = type;
     graph.client = client;
     graph.data = [];
+    //graph.updating = false;
 
-    graph.gid = null;
+    //graph.gid = null;
     graph.chart = null;
 
     graph.build = function () {
@@ -187,7 +188,16 @@ mworks.graph = function (client, vars, type) {
             //.call(graph.chart);
         graph.chart.update();
     };
+    
+    graph.start = function () {
+        graph.order_data();
+        d3.select('#chart')
+            .datum(graph.data)
+          .transition().duration(500)
+            .call(graph.chart);
+    };
 
+    /*
     graph.start = function () {
         graph.order_data();
         d3.select('#chart')
@@ -195,11 +205,14 @@ mworks.graph = function (client, vars, type) {
           .transition().duration(500)
             .call(graph.chart);
         graph.gid = window.setInterval(graph.redraw, 1000);
+        graph.updating = true;
     };
 
     graph.stop = function () {
         window.clearInterval(graph.gid);
+        graph.updating = false;
     };
+    */
 
     return graph;
 };
@@ -861,6 +874,12 @@ mworks.client = (function () {
         client.graphs.push(new mworks.graph(client, vars, type));
     };
 
+    client.redraw_graphs = function () {
+        for (i in client.graphs) {
+            client.graphs[i].redraw();
+        };
+    };
+    /*
     client.start_graphing = function () {
         for (i in client.graphs) {
             client.graphs[i].start();
@@ -872,6 +891,7 @@ mworks.client = (function () {
             client.graphs[i].stop();
         };
     };
+    */
 
     return client;
 });

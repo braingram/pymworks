@@ -60,15 +60,27 @@
     <script>
         $.pnotify.defaults.styling = "jqueryui";
         var client; // make this global
-
+        var tids = [];
 
         function start_graphing() {
-            client.start_graphing();
+            console.log('starting graphing');
+            document.title = 'graphing';
+            for (i in client.graphs) {
+                client.graphs[i].start();
+            };
+            tids.push(window.setInterval(client.redraw_graphs, 1000));
+            //client.start_graphing();
         };
 
         function stop_graphing() {
-            client.stop_graphing();
+            console.log('stopping graphing');
+            document.title = 'paused';
+            while (tids.length) {
+                window.clearInterval(tids.pop());
+            };
+            //client.stop_graphing();
         };
+
 
         {% block head_js %}
         {% endblock %}
@@ -125,6 +137,8 @@
             {% if session_config is defined %}
             client.load_config({{ session_config|tojson|safe }});
             {% endif %}
+            $(window).focus(start_graphing);
+            $(window).blur(stop_graphing);
         });
     </script>
 </head>
