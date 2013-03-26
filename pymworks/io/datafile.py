@@ -323,9 +323,9 @@ class DataFileWriter(Sink):
         self.ldo._marshal([event.code, event.time, event.value])
 
 
-def open_file(fn, indexed=True, index=None):
+def open_file(fn, indexed=True):
     if indexed:
-        return IndexedDataFile(fn, index=index)
+        return IndexedDataFile(fn)
     return DataFile(fn)
 
 
