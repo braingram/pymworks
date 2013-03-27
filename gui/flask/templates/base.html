@@ -63,16 +63,18 @@
         var tids = [];
 
         function start_graphing() {
-            console.log('starting graphing');
-            $('#graph_status').text('graphing');
-            for (i in client.graphs) {
-                client.graphs[i].start();
+            if (!tids.length) {
+                //$.pnotify({title: 'starting graphing'});
+                $('#graph_status').text('graphing');
+                for (i in client.graphs) {
+                    client.graphs[i].start();
+                };
+                tids.push(window.setInterval(client.redraw_graphs, 1000));
             };
-            tids.push(window.setInterval(client.redraw_graphs, 1000));
         };
 
         function stop_graphing() {
-            console.log('stopping graphing');
+            //$.pnotify({title: 'stopping graphing'});
             $('#graph_status').text('paused');
             while (tids.length) {
                 window.clearInterval(tids.pop());
@@ -112,7 +114,16 @@
             client.connect_socket();
             // need to template the toolbar, and other tags that require id
             $('#toolbar').tabs();
-            $('#display').tabs();
+            $('#display').tabs({
+                activate: function (event, ui) {
+                    //console.log({'event': event, 'ui': ui});
+                    if ($('a', ui.newTab).attr('href') == '#disp_graphs') {
+                        start_graphing();
+                    } else {
+                        stop_graphing();
+                    };
+                },
+            });
 
             $('#filetree').fileTree({
                 root: '~/Repositories/coxlab/protocols',
