@@ -107,7 +107,7 @@ mworks.graph = function (client, vars, type) {
 
     graph.build();
 
-    graph.getvalue = function (di, index) {
+    graph.getvalue = function (di, index, with_ref) {
         if (index >= graph.data[di]['values'].length) {
             v = graph.data[di]['values'][graph.data[di]['values'].length - 1];
             r = false;
@@ -115,15 +115,14 @@ mworks.graph = function (client, vars, type) {
             v = graph.data[di]['values'][index];
             r = true;
         };
-        return [r, [v[0], v[1] - graph.data[di]['ref']]];
-        if (index >= graph.data[di]['values'].length) {
-            return [false, graph.data[di]['values'][graph.data[di]['values'].length - 1] - graph.data[di]['ref']];
+        if (with_ref) {
+            return [r, [v[0], v[1] - graph.data[di]['ref']]];
         } else {
-            return [true, graph.data[di]['values'][index] - graph.data[di]['ref']];
+            return [r, v];
         };
     };
 
-    graph.order_data = function () {
+    graph.order_data = function (with_ref) {
         // copy data
         mi = 0;
         inds = {};
@@ -153,7 +152,7 @@ mworks.graph = function (client, vars, type) {
             mt = Infinity;
             mdi = 0;
             for (di in inds) {
-                r = graph.getvalue(di, inds[di]);
+                r = graph.getvalue(di, inds[di], with_ref);
                 rs[di] = r[0];
                 values[di] = r[1];
                 // find one with lowest time
@@ -187,8 +186,8 @@ mworks.graph = function (client, vars, type) {
         };
     };
 
-    graph.redraw = function () {
-        graph.order_data();
+    graph.redraw = function (with_ref) {
+        graph.order_data(with_ref);
         //console.log(graph.data);
         d3.select('#chart')
             .datum(graph.data)
@@ -275,6 +274,7 @@ mworks.client = (function () {
     client.socket = null;
 
     client.graphs = [];
+    client.graph_ref = ko.observable(true);
 
     client.host = ko.observable("");
     client.port = ko.observable(19989);
@@ -884,7 +884,7 @@ mworks.client = (function () {
 
     client.redraw_graphs = function () {
         for (i in client.graphs) {
-            client.graphs[i].redraw();
+            client.graphs[i].redraw(client.graph_ref());
         };
     };
 

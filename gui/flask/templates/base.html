@@ -150,6 +150,7 @@
             // must be done AFTER redefining select_experiment :-/ 
             client.apply_binding('#toolbar');
             client.apply_binding('#disp_variables');
+            client.apply_binding('#disp_graphs');
             client.bind_variables('[var-bind]');
 
             {% block documentready_js %}
@@ -300,6 +301,9 @@
                         onclick="start_graphing()">Start Graphing</button>
                     <button class="control_button" title="stop graphing"
                         onclick="stop_graphing()">Stop Graphing</button>
+                    <input class="control_check" type="checkbox"
+                        title="Graph Relative to Reference"
+                        data-bind="checked: client.graph_ref">Graph Relative to Reference</input>
                     <button class="store_reference" title="store reference"
                         onclick="store_reference()">Store Reference</button>
                     <span id="graph_status"></span>
