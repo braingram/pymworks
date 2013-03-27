@@ -32,25 +32,42 @@ var animal = function (cfg) {
         animal[attr] = ko.observable((attr in cfg ? cfg[attr] : attrs[attr]));
     };
 
+    animal.to_config = function () {
+        cfg = {};
+        for (attr in attrs) {
+            if (animal[attr]() !== undefined) {
+                cfg[attr] = animal[attr]();
+            };
+        };
+        return cfg;
+    };
+
+    animal.from_config = function (cfg) {
+        for (attr in cfg) {
+            animal[attr](cfg[attr]);
+        };
+    };
+
     return animal;
 };
 
 
 var colony = (function () {
     var colony = {};
+    var undo_data = {};
     
     colony.animals = ko.observableArray();
 
     colony.add_animal = function (cfg) {
         colony.animals.push(animal(cfg));
         if (colony.selected() === undefined) {
-            colony.selected(colony.animals()[colony.animals().length - 1]);
+            colony.select_animal(colony.animals()[colony.animals().length - 1]);
         };
     };
 
     colony.create_animal = function () {
         colony.add_animal({});
-        colony.selected(colony.animals()[colony.animals().length - 1]);
+        colony.select_animal(colony.animals()[colony.animals().length - 1]);
     };
 
     colony.load_animal = function () {
@@ -60,7 +77,7 @@ var colony = (function () {
     };
 
     colony.edit_animal = function () {
-        colony.selected(this);
+        colony.select_animal(this);
         $('#tabs').tabs('option', 'selected', 1);
     };
 
@@ -77,12 +94,7 @@ var colony = (function () {
                 animal = animals[ai];
                 n = animal['name']();
                 // TODO check name, etc...
-                data[n] = {};
-                for (a in animal) {
-                    if (animal[a]() !== undefined) {
-                        data[n][a] = animal[a]();
-                    };
-                };
+                data[n] = animal.to_config();
             };
             colony.data = data;
             data = $.toJSON(data);
@@ -100,6 +112,15 @@ var colony = (function () {
 
     colony.select_experiment = function () {
         // will be overloaded by page to use appropriate jquery.filetree
+    };
+
+    colony.select_animal = function (animal) {
+        colony.selected(animal);
+        colony.undo_data = colony.selected().to_config();
+    };
+
+    colony.undo_edits = function () {
+        colony.selected().from_config(colony.undo_data);
     };
 
     return colony;

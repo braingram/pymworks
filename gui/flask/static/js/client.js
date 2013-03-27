@@ -188,7 +188,6 @@ mworks.graph = function (client, vars, type) {
 
     graph.redraw = function (with_ref) {
         graph.order_data(with_ref);
-        //console.log(graph.data);
         d3.select('#chart')
             .datum(graph.data)
           .transition().duration(500);
@@ -272,9 +271,12 @@ mworks.client = (function () {
     var client = {};
     client.id = mworks.utils.get_id();
     client.socket = null;
+    client.config = {};
 
     client.graphs = [];
     client.graph_ref = ko.observable(true);
+
+    client.state = ko.observable(undefined);
 
     client.host = ko.observable("");
     client.port = ko.observable(19989);
@@ -403,6 +405,7 @@ mworks.client = (function () {
          *
          * ui/graphs
          */
+        client.config = config;
         if ('host' in config) {
             client.host(config['host']);
         };
@@ -410,7 +413,7 @@ mworks.client = (function () {
             client.port(config['port']);
         };
         if ('user' in config) {
-            client.port(config['user']);
+            client.user(config['user']);
         };
         if ('experiment_path' in config) {
             client.experiment_path(config['experiment_path']);
@@ -435,76 +438,70 @@ mworks.client = (function () {
         };
 
         if ('animal' in config) {
-            // possibly define:
-            // datafile
+            // possibly define datafile
             if (client.datafile() === '') {
                 client.datafile(mworks.utils.make_filename(config['animal']));
             };
-            // variableset: get most recent
-            $(client).one('after:variablesets', function () {
-                if (client.variableset() === "") {
-                    if ('autoload_variableset' in config) {
-                        mr = mworks.utils.find_most_recent(client.variablesets(), function (i) {
-                            return i.indexOf(config['animal']) !== -1;
-                        });
-                        if (mr !== null) {
-                            client.variableset(mr);
-                            client.load_variableset();
-                        } else {
-                            client.error('Failed to find recent variableset');
-                            console.log('Failed to find recent variableset');
-                        };
-                    };
-                    // autosave
-                    if ('autosave_variableset' in config) {
-                        fn = mworks.utils.make_filename(config['animal'], '_vars');
-                        if (client.variableset() === fn) {
-                            client.save_variableset();
-                        } else {
-                            client.create_variableset(fn);
-                        };
-                    };
-                };
-            });
         };
 
-        // autosave_datafile
-        if ('autosave_datafile' in config) {
-            $(client).one('after:loaded', function () {
-                client.open_datafile();
-            });
-        };
-
-        if ('autoload_experiment' in config) {
-            // only do this once
-            $(client).one('after:connected', function () {
-                console.log("after:connected... ");
-                client.load_experiment();
-            });
-            if (client.connected()) {
-                $(client).trigger('after:connected');
+        $(client).one('after:state', function () {
+            console.log('auto_config, after:state');
+            // check that experiment_path and config.experiment_path agree or experiment_path is blank?
+            if ((client.experiment_path() === client.config['experiment_path']) | (client.experiment_path() === "")) {
+                // ---- autoconfig!! ----
+                // autoload_variableset
+                // autosave_variableset
+                $(client).one('after:variablesets', function () {
+                    if (client.variableset() === "") {
+                        if (client.config['autoload_variableset']) {
+                            mr = mworks.utils.find_most_recent(client.variablesets(), function (i) {
+                                return i.indexOf(client.config['animal']) !== -1;
+                            });
+                            if (mr !== null) {
+                                client.variableset(mr);
+                                client.load_variableset();
+                            } else {
+                                client.error('Failed to find recent variableset');
+                                console.log('Failed to find recent variableset');
+                            };
+                        };
+                        // autosave
+                        if (client.config['autosave_variableset']) {
+                            fn = mworks.utils.make_filename(client.config['animal'], '_vars');
+                            if (client.variableset() === fn) {
+                                client.save_variableset();
+                            } else {
+                                client.create_variableset(fn);
+                            };
+                        };
+                    };
+                });
+                // autosave_datafile
+                if (client.config['autosave_datafile']) { $(client).one('after:loaded', function () { client.open_datafile(); }); };
+                // autostart
+                if (client.config['autostart']) { $(client).one('after:protocols', function () { client.start_experiment(); }); };
+                // autoload_experiment
+                if (client.config['autoload_experiment']) { client.load_experiment(); };
+                // autoconnect (done elsewhere)
+            } else {
+                client.error("Cowardly refusing to configure server\nwith loaded experiment:\n" + client.experiment_path());
             };
-        };
+        });
 
-        if ('autoconnect' in config) {
-            client.connect();
+        if (client.connected()) {
+            $(client).trigger('after:connected');
         };
 
         if (client.loaded()) {
             $(client).trigger('after:loaded');
         };
 
-        if ('autostart' in config) {
-            $(client).one('after:protocols', function () {
-                console.log("after:protocols...");
-                client.start_experiment();
-            });
-            for (i in client.protocols()) {
-                if (client.protocol() == client.protocols()[i]) {
-                    $(client).trigger('after:protocols');
-                    break;
-                };
-            };
+        if ((config['autoconnect']) & (!(client.connected()))) {
+            client.connect();
+        };
+
+        if (client.state() !== undefined) {
+            client.trigger('after:state');
         };
     };
 
@@ -713,7 +710,13 @@ mworks.client = (function () {
         });
 
         client.socket.on('state', function (state) {
-            client.parse_state(state);
+            client.state(state);
+            try {
+                client.parse_state(state);
+            } catch (error) {
+                client.error(error);
+            };
+            $(client).trigger('after:state');
         });
         
         client.socket.on('iostatus', function (iostatus) {
@@ -845,7 +848,6 @@ mworks.client = (function () {
     };
 
     client.create_variableset = function (name) {
-        console.log('create_variableset: ' + name);
         client.require_socket();
         client.require_connected();
         // check if variableset is in variablesets

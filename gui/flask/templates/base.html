@@ -170,7 +170,11 @@
             client.load_config({{ session_config|tojson|safe }});
             {% endif %}
             $(client).on('after:variableset')
-            $(window).focus(start_graphing);
+            $(window).focus(function () {
+                if ($('#disp_graphs').css('display') !== 'none') {
+                    start_graphing();
+                };
+            });
             $(window).blur(stop_graphing);
         });
     </script>
