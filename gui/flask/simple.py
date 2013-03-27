@@ -17,6 +17,7 @@ Write
 - connect/disconnect/reconnect (like generic Stream)
 """
 
+import json
 import logging
 import os
 import pickle
@@ -113,6 +114,20 @@ def select_animal(animal):
     else:
         logging.debug('failed to find animal %s in %s' % (animal, animals))
         return flask.abort(404)
+
+
+@app.route('/save_animals')
+def save_animals():
+    s = 'Saved to: %s' % animals_filename
+    e = False
+    try:
+        data = json.loads(flask.request.args['data'])
+        with open(animals_filename, 'w') as f:
+            pickle.dump(data, f)
+    except Exception as E:
+        e = True
+        s = str(E)
+    return flask.jsonify(status=s, error=e)
 
 
 class ClientNamespace(BaseNamespace):

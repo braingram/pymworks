@@ -6,6 +6,8 @@
     <script type="text/javascript"
         src="{{ url_for('static', filename='js/jquery.js') }}"></script>
     <script type="text/javascript"
+        src="{{ url_for('static', filename='js/jquery-json.js') }}"></script>
+    <script type="text/javascript"
         src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script>
     <script type="text/javascript"
         src="{{ url_for('static', filename='js/jquery.pnotify.js') }}"></script>
@@ -21,6 +23,9 @@
 
     <link href="{{ url_for('filetree.static', filename='css/jqueryFileTree.css') }}" rel="stylesheet"></link>
 
+    <script type="text/javascript"
+        src="{{ url_for('static', filename='js/colony.js') }}"></script>
+
     <style>
         body {
             font: 62.5% "Trebuchet MS", sans-serif;
@@ -28,6 +33,7 @@
     </style>
 
     <script>
+        $.pnotify.defaults.styling = "jqueryui";
         $(document).ready(function () {
             $('#tabs').tabs();
             $('#filetree').fileTree({
@@ -35,14 +41,43 @@
                 script: "{{ url_for('filetree.sfiles') }}",
             }, function (file) {
                 $('#filetree').dialog('close');
-                //client.experiment_path(file);
-                //client.load_experiment();
+                colony.selected().experiment_path(file);
             });
 
             $('#filetree').dialog({
                 autoOpen: false,
                 height: 400,
             });
+
+            colony.select_experiment = function () {
+                $('#filetree').dialog('open');
+            };
+
+            colony.saved_animals_callback = function (data, stat, xhr) {
+                console.log({'saved_animals_callback': data, 'stat': stat});
+                if (data['error']) {
+                    $.pnotify({
+                        title: 'Error saving animals',
+                        text: '' + data['status'],
+                        type: 'error',
+                        hide: false,
+                    });
+                } else {
+                    $.pnotify({
+                        title: 'Saved animals',
+                        text: '' + data['status'],
+                    });
+                };
+            };
+            
+            var animal_cfgs = {{ animals|tojson|safe }};
+            for (ai in animal_cfgs) {
+                animal_cfgs[ai]['name'] = ai;
+                console.log({'animal': animal_cfgs[ai]});
+                colony.add_animal(animal_cfgs[ai]);
+            };
+
+            ko.applyBindings('body');
         });
     </script>
 </head>
@@ -50,40 +85,81 @@
 Two tabs
 - list animals, showing...
     - animal (link to page), host, experiment_path, protocol
+    - option to allow re-connecting
 - edit/create
     - all options
 -->
-<body>
+<body data-bind="with: colony">
     <div id="tabs">
         <ul>
             <li><a href='#animals'>Animals</a></li>
             <li><a href='#edit'>Edit</a></li>
         </ul>
         <div id="animals">
-            <ul class="animal_list">
-                {% for animal in animals %}
+            <ul class="animal_list" data-bind="foreach: animals">
                 <li>
-                    <a href="/a/{{ animal }}">{{ animal }}</a>
+                    <a href="#" data-bind="click: $parent.load_animal"><span data-bind="text: name"></a>
+                    &nbsp;Host: <span data-bind="text: host"></span>
+                    &nbsp;Experiment: <span data-bind="text: experiment_path"></span>
+                    &nbsp;Protocol: <span data-bind="text: protocol"></span>
+                    <a href="#" data-bind="click: $parent.edit_animal">Edit</a>
                 </li>
-                {% endfor %}
             </ul>
         </div>
-        <div id="edit">
+        <div id="edit" data-bind="with: selected">
+            <!--
+            * create new animal
+            * edit existing animal
+            * remove existing animal
+            -->
+            <a href="#" data-bind="click: $parent.create_animal">Create New Animal to Edit</a><br />
+            <table>
+                <tbody>
+                    <tr><td>Name:</td><td><input data-bind="value: name"></input></td></tr>
+                    <tr><td>Host:</td><td><input data-bind="value: host"></input></td></tr>
+                    <tr><td>Port:</td><td><input data-bind="value: port"></input></td></tr>
+                    <tr><td>User:</td><td><input data-bind="value: user"></input></td></tr>
+                    <tr><td>Experiment Path:</td><td><input
+                            data-bind="value: experiment_path, click: $parent.select_experiment"></input></td></tr>
+                    <tr><td>Experiment Name:</td><td><input data-bind="value: experiment_name"></input></td></tr>
+                    <tr><td>Protocol:</td><td><input data-bind="value: protocol"></input></td></tr>
+                    <tr><td>Variableset:</td><td><input data-bind="value: variableset"></input></td></tr>
+                    <tr><td>Overwrite Variableset:</td><td><input type="checkbox"
+                            data-bind="checked: variableset_overwrite"></input></td></tr>
+                    <tr><td>Datafile:</td><td><input data-bind="value: datafile"></input></td></tr>
+                    <tr><td>Overwrite Datafile:</td><td><input type="checkbox"
+                            data-bind="checked: datafile_overwrite"></input></td></tr>
+                    <tr><td>Autoload Variableset:</td><td><input type="checkbox"
+                            data-bind="checked: autoload_variableset"></input></td></tr>
+                    <tr><td>Autosave Variableset</td><td><input type="checkbox"
+                            data-bind="checked: autosave_variableset"></input></td></tr>
+                    <tr><td>Autosave Datafile</td><td><input type="checkbox"
+                            data-bind="checked: autosave_datafile"></input></td></tr>
+                    <tr><td>Autoload Experiment</td><td><input type="checkbox"
+                            data-bind="checked: autoload_experiment"></input></td></tr>
+                    <tr><td>Autoconnect</td><td><input type="checkbox"
+                            data-bind="checked: autoconnect"></input></td></tr>
+                    <tr><td>Autostart</td><td><input type="checkbox"
+                            data-bind="checked: autostart"></input></td></tr>
+                </tbody>
+            </table>
+            <!-- autoload ... -->
+            <!--
+            host port user
+            experiment_path experiment_name
+            variableset variableset_overwrite
+            datafile datafile_overwrite
+            protocol
+            name
+            autoload_variableset autosave_variableset
+            autosave_datafile
+            autoload_experiment
+            autoconnect
+            autostart
+            -->
+            <a href="#" data-bind="click: $parent.save_animals">Save all animals to disk</a>
         </div>
     </div>
-    <!--
-    host port user
-    experiment_path experiment_name
-    variableset variableset_overwrite
-    datafile datafile_overwrite
-    protocol
-    animal
-    autoload_variableset autosave_variableset
-    autosave_datafile
-    autoload_experiment
-    autoconnect
-    autostart
-    -->
     <div id="filetree" title="Select a file"></div>
 </body>
 </html>
