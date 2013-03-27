@@ -84,7 +84,7 @@ mworks.graph = function (client, vars, type) {
     graph.build = function () {
         // setup data
         for (i in vars) {
-            graph.data.push({'key': vars[i], 'values': []});
+            graph.data.push({'key': vars[i], 'values': [], 'ref': 0});
             client.varbyname(vars[i]).n = 100;
         };
 
@@ -109,9 +109,17 @@ mworks.graph = function (client, vars, type) {
 
     graph.getvalue = function (di, index) {
         if (index >= graph.data[di]['values'].length) {
-            return [false, graph.data[di]['values'][graph.data[di]['values'].length - 1]];
+            v = graph.data[di]['values'][graph.data[di]['values'].length - 1];
+            r = false;
         } else {
-            return [true, graph.data[di]['values'][index]];
+            v = graph.data[di]['values'][index];
+            r = true;
+        };
+        return [r, [v[0], v[1] - graph.data[di]['ref']]];
+        if (index >= graph.data[di]['values'].length) {
+            return [false, graph.data[di]['values'][graph.data[di]['values'].length - 1] - graph.data[di]['ref']];
+        } else {
+            return [true, graph.data[di]['values'][index] - graph.data[di]['ref']];
         };
     };
 
@@ -879,19 +887,6 @@ mworks.client = (function () {
             client.graphs[i].redraw();
         };
     };
-    /*
-    client.start_graphing = function () {
-        for (i in client.graphs) {
-            client.graphs[i].start();
-        };
-    };
-
-    client.stop_graphing = function () {
-        for (i in client.graphs) {
-            client.graphs[i].stop();
-        };
-    };
-    */
 
     return client;
 });

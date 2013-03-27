@@ -64,21 +64,41 @@
 
         function start_graphing() {
             console.log('starting graphing');
-            document.title = 'graphing';
+            $('#graph_status').text('graphing');
             for (i in client.graphs) {
                 client.graphs[i].start();
             };
             tids.push(window.setInterval(client.redraw_graphs, 1000));
-            //client.start_graphing();
         };
 
         function stop_graphing() {
             console.log('stopping graphing');
-            document.title = 'paused';
+            $('#graph_status').text('paused');
             while (tids.length) {
                 window.clearInterval(tids.pop());
             };
-            //client.stop_graphing();
+        };
+
+        function store_reference() {
+            for (gi in client.graphs) {
+                g = client.graphs[gi];
+                refs = {};
+                for (ki in g.data) {
+                    k = g.data[ki]['key'];
+                    v = client.varbyname(k).latest_value();
+                    if (v !== null) {
+                        g.data[ki]['ref'] = v;
+                        refs[k] = v;
+                    };
+                };
+                if (true) {
+                    s = 'Set graph ' + gi + ' reference to:\n'
+                    for (k in refs) {
+                        s += '' + k + ' = ' + refs[k] + '\n';
+                    };
+                    client.info(s);
+                };
+            };
         };
 
 
@@ -137,6 +157,7 @@
             {% if session_config is defined %}
             client.load_config({{ session_config|tojson|safe }});
             {% endif %}
+            $(client).on('after:variableset')
             $(window).focus(start_graphing);
             $(window).blur(stop_graphing);
         });
@@ -279,6 +300,9 @@
                         onclick="start_graphing()">Start Graphing</button>
                     <button class="control_button" title="stop graphing"
                         onclick="stop_graphing()">Stop Graphing</button>
+                    <button class="store_reference" title="store reference"
+                        onclick="store_reference()">Store Reference</button>
+                    <span id="graph_status"></span>
                 </div>
                 <svg id='chart'></svg>
             </div>
