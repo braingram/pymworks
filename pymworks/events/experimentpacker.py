@@ -2,7 +2,15 @@
 
 import glob
 import os
-import xml.etree.ElementTree
+
+from .. import utils
+## get appropriate xml parser
+#import xml.etree.ElementTree
+#v = float('.'.join(xml.etree.ElementTree.VERSION.split('.')[:2]))
+#if v < 1.3:
+#    import lxml.etree.ElementTree as ETree
+#else:
+#    ETree = xml.etree.ElementTree.ElementTree
 
 
 class ExperimentLoadError(IOError):
@@ -190,7 +198,8 @@ def find_media_references(fn):
     # to resolve paths, use (already expanded) fn
     mfns = []
     try:
-        e = xml.etree.ElementTree.parse(fn)
+        #e = xml.etree.ElementTree.parse(fn)
+        e = utils.ETree(file=fn)
         for n in e.findall('.//*[@path]'):
             r = resolve_path(fn, n, e, 'path')
             if isinstance(r, (tuple, list)):

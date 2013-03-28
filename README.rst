@@ -3,7 +3,12 @@ This is a pure-python module for reading mworks data files.
 Requirements
 ----
 
-None for 'basics'
+Nothing for 'basics' on python 2.7
+
+python 2.6 requires lxml because the ElementTree
+included with py2.6 does not support enough XPath
+
+protocol inspection requires networkx
 
 ====
 Intro

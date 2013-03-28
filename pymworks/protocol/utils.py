@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
-import xml.etree.ElementTree
+from .. import utils
+#import xml.etree.ElementTree
 
 
 def load(fn):
-    e = xml.etree.ElementTree.parse(fn)
-    return e
+    return utils.ETree(file=fn)
+    #e = xml.etree.ElementTree.parse(fn)
+    #return e
 
 
 def parse_exp(v):
