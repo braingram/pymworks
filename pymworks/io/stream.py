@@ -338,6 +338,10 @@ class Client(BufferedEventStream):
         fn = os.path.realpath(os.path.expanduser(filename))
         self.write_event(system.load_experiment(fn))
 
+    def close_experiment(self, filename):
+        fn = os.path.realpath(os.path.expanduser(filename))
+        self.write_event(system.close_experiment(fn))
+
     def start_experiment(self):
         self.write_event(system.start_experiment())
 

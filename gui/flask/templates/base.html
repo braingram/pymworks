@@ -233,6 +233,8 @@
                     data-bind="value: experiment_path"></input>
                 <button class="load_experiment"
                     data-bind="click: load_experiment">Load</button>
+                <button class="close_experiment"
+                    data-bind="click: close_experiment">Close</button>
                 <button class="select_experiment"
                     data-bind="click: select_experiment">Select Experiment
                 </button>
@@ -274,9 +276,9 @@
                     title="Overwrite Datafile?"
                     data-bind="checked: datafile_overwrite">Overwrite?</input>
                 <button class="open_datafile" data-bind="click: open_datafile">
-                Open</button>
+                Start Stream</button>
                 <button class="close_datafile" data-bind="click: close_datafile">
-                Close</button>
+                Close Stream</button>
                 </span>
             </div>
             <div id="tb_config" class="tb_config">

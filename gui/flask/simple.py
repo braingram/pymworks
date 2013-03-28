@@ -57,7 +57,7 @@ import pymworks
 app = flask.Flask('pymworks client')
 gevent.monkey.patch_all()
 
-animals_filename = 'animals.p'
+animals_filename = os.path.expanduser('~/pymworks/colony.p')
 
 
 def load_animals():

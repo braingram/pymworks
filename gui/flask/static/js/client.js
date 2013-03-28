@@ -373,6 +373,27 @@ mworks.client = (function () {
         });
     };
 
+    client.parse_message = function (event) {
+        if ('type' in event.value) {
+            lvl = event.value['type'];
+        } else {
+            lvl = -1;
+        };
+
+        if ('message' in event.value) {
+            msg = '[' + lvl + ']' + event.value['message'];
+        } else {
+            msg = '[' + lvl + ']' + 'Invalid message:\n';
+            for (k in event.value) {
+                msg += '' + k + ' = ' + event.value[k] + '\n';
+            };
+        };
+
+        if (lvl > 0) {
+            client.error('MWorks error:\n' + msg);
+        };
+    };
+
     client.error = function (msg) {
         console.log(msg);
     };
@@ -695,6 +716,13 @@ mworks.client = (function () {
                     return
                 };
             };
+
+            if (event.code === 6) {  // pass on messages
+                if (typeof(event.value) === 'object') {
+                    client.parse_message(event);
+                };
+            };
+
             for (i in client.vars()) {
                 if (client.vars()[i].name() == event.name) {
                     client.vars()[i].add_event(event);
@@ -767,6 +795,13 @@ mworks.client = (function () {
         client.require_socket();
         client.require_connected();
         client.socket.emit('command', 'load_experiment', client.experiment_path());
+        client.info('Loading experiment: ' + client.experiment_path());
+    };
+
+    client.close_experiment = function () {
+        client.require_socket();
+        client.require_connected();
+        client.socket.emit('command', 'close_experiment', client.experiment_path());
         client.info('Loading experiment: ' + client.experiment_path());
     };
 
