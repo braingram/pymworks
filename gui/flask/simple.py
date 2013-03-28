@@ -60,6 +60,14 @@ gevent.monkey.patch_all()
 animals_filename = 'animals.p'
 
 
+def load_animals():
+    a = {}
+    if os.path.exists(animals_filename):
+        with open(animals_filename, 'r') as f:
+            a = pickle.load(f)
+    return a
+
+
 def fnfilter(fn):
     bn = os.path.basename(fn)
     return (len(bn) and bn[0] != '.' and
@@ -85,23 +93,23 @@ def template(template):
 @app.route('/a/')
 def animal_selection():
     # load animals
-    with open(animals_filename, 'r') as f:
-        animals = pickle.load(f)
+    animals = load_animals()
+    templates = [t for t in flask.current_app.jinja_env.list_templates()
+                 if t not in ['animals.html', 'filetree_test.html']]
     logging.debug('selecting animal from %s' % animals)
-    return flask.render_template("animals.html", animals=animals)
+    return flask.render_template(
+        "animals.html", animals=animals, templates=templates)
 
 
 @app.route('/', methods=['GET', 'PUT'])
 def default():
     return animal_selection()
-    #return flask.render_template("simple.html")
 
 
 @app.route('/a/<animal>')
 def select_animal(animal):
     # load animals
-    with open(animals_filename, 'r') as f:
-        animals = pickle.load(f)
+    animals = load_animals()
     logging.debug('loading animal: /a/%s' % animal)
     if animal in animals:
         cfg = animals[animal]

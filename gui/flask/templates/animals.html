@@ -102,21 +102,27 @@ Two tabs
                     &nbsp;Host: <span data-bind="text: host"></span>
                     &nbsp;Experiment: <span data-bind="text: experiment_path"></span>
                     &nbsp;Protocol: <span data-bind="text: protocol"></span>
+                    &nbsp;Template: <span data-bind="text: template"></span>
                     <a href="#" data-bind="click: $parent.edit_animal">Edit</a>
                 </li>
             </ul>
         </div>
-        <div id="edit" data-bind="with: selected">
+        <div id="edit">
             <!--
             * create new animal
             * edit existing animal
             * remove existing animal
             -->
-            <a href="#" data-bind="click: $parent.create_animal">Create New Animal to Edit</a><br />
-            <a href="#" data-bind="click: $parent.undo_edits">Undo Edits</a><br />
-            <table>
+            <a href="#" data-bind="click: create_animal">Create New Animal to Edit</a><br />
+            <a href="#" data-bind="click: undo_edits">Undo Edits</a><br />
+            <table data-bind="with: selected">
                 <tbody>
                     <tr><td>Name:</td><td><input data-bind="value: name"></input></td></tr>
+                    <tr><td>Template:</td><td><select data-bind="value: template">
+                                {% for template in templates %}
+                                <option value="{{ template }}">{{ template }}</option>
+                                {% endfor %}
+                    </select></td></tr>
                     <tr><td>Host:</td><td><input data-bind="value: host"></input></td></tr>
                     <tr><td>Port:</td><td><input data-bind="value: port"></input></td></tr>
                     <tr><td>User:</td><td><input data-bind="value: user"></input></td></tr>

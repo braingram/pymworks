@@ -5,6 +5,7 @@
 var animal = function (cfg) {
     var animal = {};
     attrs = {
+        template: 'base.html',
         host: '127.0.0.1',
         port: undefined,
         user: undefined,
