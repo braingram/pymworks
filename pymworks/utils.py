@@ -5,7 +5,7 @@
 import xml.etree.ElementTree
 v = float('.'.join(xml.etree.ElementTree.VERSION.split('.')[:2]))
 if v < 1.3:
-    import lxml.etree.ElementTree as ETree
+    from lxml.etree import ElementTree as ETree
 else:
     ETree = xml.etree.ElementTree.ElementTree
 
