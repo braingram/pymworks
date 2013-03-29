@@ -195,8 +195,8 @@ def parse_datafile_opened_payload(payload, state):
     code, filename = payload
     if code == RESPONSE_CODE['success']:
         state['datafile'] = filename
-        state['streaming'] = True
-        state['datafile saving'] = False
+        state['datafile error'] = False
+        state['datafile saving'] = True
     elif code == RESPONSE_CODE['failure']:
         state['datafile'] = ''
         state['datafile error'] = True
