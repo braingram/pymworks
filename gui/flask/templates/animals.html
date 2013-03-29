@@ -115,41 +115,46 @@ Two tabs
             -->
             <a href="#" data-bind="click: create_animal">Create New Animal to Edit</a><br />
             <a href="#" data-bind="click: undo_edits">Undo Edits</a><br />
-            <table data-bind="with: selected">
-                <tbody>
-                    <tr><td>Name:</td><td><input data-bind="value: name"></input></td></tr>
-                    <tr><td>Template:</td><td><select data-bind="value: template">
-                                {% for template in templates %}
-                                <option value="{{ template }}">{{ template }}</option>
-                                {% endfor %}
-                    </select></td></tr>
-                    <tr><td>Host:</td><td><input data-bind="value: host"></input></td></tr>
-                    <tr><td>Port:</td><td><input data-bind="value: port"></input></td></tr>
-                    <tr><td>User:</td><td><input data-bind="value: user"></input></td></tr>
-                    <tr><td>Experiment Path:</td><td><input
-                            data-bind="value: experiment_path, click: $parent.select_experiment"></input></td></tr>
-                    <tr><td>Experiment Name:</td><td><input data-bind="value: experiment_name"></input></td></tr>
-                    <tr><td>Protocol:</td><td><input data-bind="value: protocol"></input></td></tr>
-                    <tr><td>Variableset:</td><td><input data-bind="value: variableset"></input></td></tr>
-                    <tr><td>Overwrite Variableset:</td><td><input type="checkbox"
-                            data-bind="checked: variableset_overwrite"></input></td></tr>
-                    <tr><td>Datafile:</td><td><input data-bind="value: datafile"></input></td></tr>
-                    <tr><td>Overwrite Datafile:</td><td><input type="checkbox"
-                            data-bind="checked: datafile_overwrite"></input></td></tr>
-                    <tr><td>Autoload Variableset:</td><td><input type="checkbox"
-                            data-bind="checked: autoload_variableset"></input></td></tr>
-                    <tr><td>Autosave Variableset</td><td><input type="checkbox"
-                            data-bind="checked: autosave_variableset"></input></td></tr>
-                    <tr><td>Autosave Datafile</td><td><input type="checkbox"
-                            data-bind="checked: autosave_datafile"></input></td></tr>
-                    <tr><td>Autoload Experiment</td><td><input type="checkbox"
-                            data-bind="checked: autoload_experiment"></input></td></tr>
-                    <tr><td>Autoconnect</td><td><input type="checkbox"
-                            data-bind="checked: autoconnect"></input></td></tr>
-                    <tr><td>Autostart</td><td><input type="checkbox"
-                            data-bind="checked: autostart"></input></td></tr>
-                </tbody>
-            </table>
+            <div data-bind="with: selected">
+                <table>
+                    <tbody>
+                        <tr><td>Name:</td><td><input data-bind="value: name"></input></td></tr>
+                        <tr><td>Template:</td><td><select data-bind="value: template">
+                                    {% for template in templates %}
+                                    <option value="{{ template }}">{{ template }}</option>
+                                    {% endfor %}
+                        </select></td></tr>
+                        <tr><td>Host:</td><td><input data-bind="value: host"></input></td></tr>
+                        <tr><td>Port:</td><td><input data-bind="value: port"></input></td></tr>
+                        <tr><td>User:</td><td><input data-bind="value: user"></input></td></tr>
+                        <tr><td>Experiment Path:</td><td><input
+                                data-bind="value: experiment_path, click: $parent.select_experiment"></input></td></tr>
+                        <tr><td>Experiment Name:</td><td><input data-bind="value: experiment_name"></input></td></tr>
+                        <tr><td>Protocol:</td><td><input data-bind="value: protocol"></input></td></tr>
+                        <tr><td>Variableset:</td><td><input data-bind="value: variableset"></input></td></tr>
+                        <tr><td>Overwrite Variableset:</td><td><input type="checkbox"
+                                data-bind="checked: variableset_overwrite"></input></td></tr>
+                        <tr><td>Datafile:</td><td><input data-bind="value: datafile"></input></td></tr>
+                        <tr><td>Overwrite Datafile:</td><td><input type="checkbox"
+                                data-bind="checked: datafile_overwrite"></input></td></tr>
+                        <tr><td>Autoload Variableset:</td><td><input type="checkbox"
+                                data-bind="checked: autoload_variableset"></input></td></tr>
+                        <tr><td>Autosave Variableset</td><td><input type="checkbox"
+                                data-bind="checked: autosave_variableset"></input></td></tr>
+                        <tr><td>Autosave Datafile</td><td><input type="checkbox"
+                                data-bind="checked: autosave_datafile"></input></td></tr>
+                        <tr><td>Autoload Experiment</td><td><input type="checkbox"
+                                data-bind="checked: autoload_experiment"></input></td></tr>
+                        <tr><td>Autoconnect</td><td><input type="checkbox"
+                                data-bind="checked: autoconnect"></input></td></tr>
+                        <tr><td>Autostart</td><td><input type="checkbox"
+                                data-bind="checked: autostart"></input></td></tr>
+                    </tbody>
+                </table>
+                <br />
+                <a href="#" data-bind="click: $parent.remove_animal">Remove/Delete Animal</a><br />
+                <br />
+            </div>
             <a href="#" data-bind="click: save_animals">Save all animals to disk</a>
         </div>
     </div>

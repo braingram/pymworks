@@ -181,6 +181,9 @@
                 };
             });
             $(window).blur(stop_graphing);
+            window.onbeforeunload = function () {
+                return "Varibleset saved?\nDatafile stream closed?";
+            };
         });
     </script>
 </head>

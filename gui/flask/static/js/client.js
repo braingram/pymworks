@@ -315,6 +315,7 @@ mworks.client = (function () {
     client.state = ko.observable(undefined);
 
     client.messages = ko.observableArray();
+    client.max_messages = ko.observable(50);
 
     client.host = ko.observable("");
     client.port = ko.observable(19989);
@@ -411,6 +412,12 @@ mworks.client = (function () {
         });
     };
 
+    client.log_message = function (message) {
+        if (client.messages.unshift(message) > client.max_messages()) {
+            client.messages.pop();
+        };
+    };
+
     client.parse_message = function (event) {
         if ('type' in event.value) {
             lvl = event.value['type'];
@@ -427,10 +434,10 @@ mworks.client = (function () {
             };
         };
 
-        if (lvl > 0) {
+        if (lvl > 2) {
             client.error('MWorks error:\n' + msg);
         };
-        client.messages.push(new mworks.message(event));
+        client.log_message(new mworks.message(event));
     };
 
     client.clear_messages = function () {

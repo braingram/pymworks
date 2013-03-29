@@ -2,7 +2,7 @@
  * This exposes a global mworks object
  */
 
-var animal = function (cfg) {
+var Animal = function (cfg) {
     var animal = {};
     attrs = {
         template: 'base.html',
@@ -60,7 +60,7 @@ var colony = (function () {
     colony.animals = ko.observableArray();
 
     colony.add_animal = function (cfg) {
-        colony.animals.push(new animal(cfg));
+        colony.animals.push(new Animal(cfg));
         if (colony.selected() === undefined) {
             colony.select_animal(colony.animals()[colony.animals().length - 1]);
         };
@@ -83,7 +83,18 @@ var colony = (function () {
     };
 
     colony.remove_animal = function () {
-        console.log({'removing animal': this});
+        i = colony.animals.indexOf(this);
+        if (i !== -1) {
+            colony.animals.splice(i, 1);
+            if (colony.selected() === this) {
+                colony.selected(colony.animals().length ? colony.animals()[0] : undefined);
+            };
+            console.log({'removing animal': this});
+            $.pnotify({title: 'Removed animal', text: this.name()});
+        } else {
+            console.log({'failed to find animal to remove': this});
+            $.pnotify({title: 'Failed to find animal to remove', text: this, type: 'error', hide: false});
+        };
     };
 
     colony.save_animals = function () {
