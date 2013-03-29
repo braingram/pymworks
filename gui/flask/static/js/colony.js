@@ -60,7 +60,7 @@ var colony = (function () {
     colony.animals = ko.observableArray();
 
     colony.add_animal = function (cfg) {
-        colony.animals.push(animal(cfg));
+        colony.animals.push(new animal(cfg));
         if (colony.selected() === undefined) {
             colony.select_animal(colony.animals()[colony.animals().length - 1]);
         };
