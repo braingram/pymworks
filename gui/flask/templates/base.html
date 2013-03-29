@@ -46,8 +46,12 @@
             min-width: 250px;
         }
 
-        .multicolumn_block{
+        .multicolumn_block {
             overflow: hidden;
+        }
+
+        .message_list {
+            list-style: none;
         }
     </style>
 
@@ -162,6 +166,7 @@
             client.apply_binding('#toolbar');
             client.apply_binding('#disp_variables');
             client.apply_binding('#disp_graphs');
+            client.apply_binding('#disp_messages');
             client.bind_variables('[var-bind]');
 
             {% block documentready_js %}
@@ -291,6 +296,7 @@
                 <li><a href='#disp_variables'>Variables</a></li>
                 <li><a href='#disp_controls'>Controls</a></li>
                 <li><a href='#disp_graphs'>Graphs</a></li>
+                <li><a href='#disp_messages'>Messages</a></li>
                 {% block display_menu %}
                 {% endblock %}
             </ul>
@@ -329,6 +335,16 @@
             </div>
             {% block display_items %}
             {% endblock %}
+            <div id="disp_messages" class="disp_messages">
+                <button class="control_button" title="clear messages"
+                    data-bind="click: clear_messages">Clear Messages</button>
+                <ul class="message_list" data-bind="foreach: messages">
+                    <li data-bind="style: { color: color }">
+                        <span data-bind="text: stype"></span>:
+                        <span data-bind="text: message"></span>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
     {% block body %}

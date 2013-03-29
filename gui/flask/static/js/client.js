@@ -262,6 +262,42 @@ mworks.variable = function (name, send_event) {
     return variable;
 };
 
+mworks.message = function (event) {
+    var message = {};
+    message.time = event.time;
+
+    if (typeof(event.value) !== 'object') {
+        console.log({'Badly formed message': event.value});
+        event.value = {};
+    };
+    
+    stypes = {
+        0: 'Invalid',
+        1: 'Generic',
+        2: 'Warning',
+        3: 'Error',
+        4: 'Fatal',
+    };
+
+    colors = {
+        0: 'black',
+        1: 'green',
+        2: 'orange',
+        3: 'red',
+        4: 'red',
+    };
+
+    message.type = ('type' in event.value ? event.value['type'] : -1);
+    ti = message.type + 1;
+    message.stype = (ti in stypes ? stypes[ti] : 'Unknown');
+    message.color = (ti in colors ? colors[ti] : 'red');
+    message.origin = ('origin' in event.value ? event.value['origin'] : 0);
+    message.domain = ('domain' in event.value ? event.value['domain'] : 0);
+    message.message = ('message' in event.value ? event.value['message'] : '');
+
+    return message;
+};
+
 mworks.client = (function () {
     /*
      * Add listeners for:
@@ -277,6 +313,8 @@ mworks.client = (function () {
     client.graph_ref = ko.observable(true);
 
     client.state = ko.observable(undefined);
+
+    client.messages = ko.observableArray();
 
     client.host = ko.observable("");
     client.port = ko.observable(19989);
@@ -392,6 +430,11 @@ mworks.client = (function () {
         if (lvl > 0) {
             client.error('MWorks error:\n' + msg);
         };
+        client.messages.push(new mworks.message(event));
+    };
+
+    client.clear_messages = function () {
+        client.messages([]);
     };
 
     client.error = function (msg) {
