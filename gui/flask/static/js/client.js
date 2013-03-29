@@ -316,6 +316,7 @@ mworks.client = (function () {
 
     client.messages = ko.observableArray();
     client.max_messages = ko.observable(50);
+    client.message_verbosity = ko.observable(0);
 
     client.host = ko.observable("");
     client.port = ko.observable(19989);
@@ -331,6 +332,10 @@ mworks.client = (function () {
 
     client.datafile = ko.observable("");
     client.datafile_overwrite = ko.observable(false);
+    client.datafile_saving = ko.observable(false);
+    client.datafile_saving_verbose = ko.computed(function () {
+        return client.datafile_saving() ? "Saving" : "Not Saving";
+    });
 
     client.protocol = ko.observable("");
     client.protocols = ko.observableArray();
@@ -397,11 +402,11 @@ mworks.client = (function () {
             switch (bt) {
                 case 'value':
                     $(this).attr('data-bind', "with: client.varbyname('" + vn + "')");
-                    node.innerHTML = "<input class='control_input' value='' data-bind='value: latest_value'/>" + node.innerHTML;
+                    node.innerHTML = "<input class='control_input' value='' title='" + vn + "' data-bind='value: latest_value'/>" + node.innerHTML;
                     break;
                 case 'check':
                     $(this).attr('data-bind', "with: client.varbyname('" + vn + "')");
-                    node.innerHTML = "<input class='control_check' type='checkbox' value='' data-bind='checked: latest_value'/>" + node.innerHTML;
+                    node.innerHTML = "<input class='control_check' type='checkbox' title='" + vn + "' value='' data-bind='checked: latest_value'/>" + node.innerHTML;
                     break;
                 case 'button':
                     node.innerHTML = '<button class="control_button" title="' + vn + '" onclick="client.send_event(' + "'" + vn + "', " + bv + ')">' + vn + '=' + bv + "</button>";
@@ -413,6 +418,7 @@ mworks.client = (function () {
     };
 
     client.log_message = function (message) {
+        if (message.type <= client.message_verbosity()) return;
         if (client.messages.unshift(message) > client.max_messages()) {
             client.messages.pop();
         };
@@ -650,6 +656,12 @@ mworks.client = (function () {
             if (state['datafile error']) {
                 client.error('datafile error:' + state['datafile']);
                 console.log({'datafile error': state});
+            };
+        };
+
+        if ('datafile saving' in state) {
+            if (state['datafile saving'] != client.datafile_saving()) {
+                client.datafile_saving(state['datafile saving']);
             };
         };
         /*

@@ -195,10 +195,12 @@ def parse_datafile_opened_payload(payload, state):
     code, filename = payload
     if code == RESPONSE_CODE['success']:
         state['datafile'] = filename
-        state['datafile error'] = False
+        state['streaming'] = True
+        state['datafile saving'] = False
     elif code == RESPONSE_CODE['failure']:
         state['datafile'] = ''
         state['datafile error'] = True
+        state['datafile saving'] = False
     else:
         parse_warning('Invalid resopnse code', payload)
     return state
@@ -214,9 +216,11 @@ def parse_datafile_closed_payload(payload, state):
     if code == RESPONSE_CODE['success']:
         state['datafile'] = ''
         state['datafile error'] = False
+        state['datafile saving'] = False
     elif code == RESPONSE_CODE['success']:
         state['datafile'] = ''
         state['datafile error'] = True
+        #state['datafile saving']  # not sure what to do here
     else:
         parse_warning('Invalid resopnse code', payload)
     return state
