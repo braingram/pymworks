@@ -58,6 +58,12 @@
     {% block head %}
     {% endblock %}
 
+    <script type="text/javascript" src="https://apis.google.com/js/client.js?onload=handleClientLoad"></script>
+    <!--
+    <script type="text/javascript" src="{{ url_for('static', filename='js/html2canvas.js') }}"></script>
+    -->
+    <script type="text/javascript" src="{{ url_for('static', filename='js/report.js') }}"></script>
+
     <script type="text/javascript"
         src="{{ url_for('static', filename='js/client.js') }}"></script>
 
@@ -336,7 +342,9 @@
                         onclick="store_reference()">Store Reference</button>
                     <span id="graph_status"></span>
                 </div>
-                <svg id='chart'></svg>
+                <div id='chart_div'>
+                    <svg id='chart'></svg>
+                </div>
             </div>
             {% block display_items %}
             {% endblock %}
