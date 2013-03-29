@@ -46,10 +46,20 @@ reports.auth = function (callback) {
     gapi.auth.authorize(info, cb);
 };
 
+reports._html_from_client = function (client) {
+    s = "<html><head></head><body>";
+    // timestamp
+    // google user info?
+    // client info
+    // host, port, experiment_path, experiment_name, protocol, variableset, datafile
+    s += "</body></html>";
+};
+
 reports._generate = function (client) {
     // convert client to base64data
     //base64data = client;
-    s = "<html><head></head><body>Hello World!</body></html>";
+    //s = "<html><head></head><body>Hello World!</body></html>";
+    s = reports._html_from_client(client);
     //s = document.documentElement.innerHTML;
     //s = '<html><head></head><body>' + $('svg').get(0).parentNode.innerHTML + '</body></html>';
     //s = $('svg').get(0).parentNode.innerHTML;

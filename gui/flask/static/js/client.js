@@ -317,6 +317,7 @@ mworks.client = (function () {
     client.messages = ko.observableArray();
     client.max_messages = ko.observable(50);
     client.message_verbosity = ko.observable(0);
+    client.message_error_verbosity = ko.observable(1);
 
     client.host = ko.observable("");
     client.port = ko.observable(19989);
@@ -440,7 +441,7 @@ mworks.client = (function () {
             };
         };
 
-        if (lvl > 1) {
+        if (lvl > client.message_error_verbosity()) {
             client.error('MWorks error:\n' + msg);
         };
         client.log_message(new mworks.message(event));

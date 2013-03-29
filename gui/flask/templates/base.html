@@ -37,6 +37,10 @@
             font: 62.5% "Trebuchet MS", sans-serif;
         }
 
+        #create_variables_form {
+            display: inline-block;
+        }
+
         #chart {
             height: 500px;
         }
@@ -201,7 +205,7 @@
                 <li><a href='#tb_experiment'>Experiment</a></li>
                 <li><a href='#tb_variableset'>Variableset</a></li>
                 <li><a href='#tb_datafile'>Datafile</a></li>
-                <li><a href='#tb_config'>Config</a></li>
+                <!-- <li><a href='#tb_config'>Config</a></li> -->
             </ul>
             <!-- Connection -->
             <div id="tb_connection" class="tb_connection">
@@ -276,7 +280,8 @@
                 <button class="save_variableset"
                     title="Save Variables"
                     data-bind="click: save_variableset">Save</button>
-                    <form data-bind="submit: function (f) { client.create_variableset($('.name', f).val()); }">
+                    <form id='create_variables_form'
+                        data-bind="submit: function (f) { client.create_variableset($('.name', f).val()); }">
                         Create New Variableset:
                         <input class="name" title="Type in name of variableset to create, press Enter to create"></input>
                     </form>
@@ -297,10 +302,12 @@
                 Close Stream</button>
                 </span>
             </div>
+            <!--
             <div id="tb_config" class="tb_config">
                 <span>Config:
                 </span>
             </div>
+            -->
         </div> <!-- toolbar -->
         <div id="display" class="toolbar">
             <ul>
@@ -355,6 +362,8 @@
                 data-bind="value: max_messages"></input>
                 Verbosity: <input type="number" title="lower = more messages"
                 data-bind="value: message_verbosity"></input>
+                Notification Threshold: <input type="number" title="lower = more notifications"
+                data-bind="value: message_error_verbosity"></input>
                 <ul class="message_list" data-bind="foreach: messages">
                     <li data-bind="style: { color: color }">
                         <span data-bind="text: stype"></span>:
