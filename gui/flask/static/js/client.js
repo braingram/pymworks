@@ -440,7 +440,7 @@ mworks.client = (function () {
             };
         };
 
-        if (lvl > 2) {
+        if (lvl > 1) {
             client.error('MWorks error:\n' + msg);
         };
         client.log_message(new mworks.message(event));
