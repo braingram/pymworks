@@ -147,7 +147,8 @@ class ClientNamespace(BaseNamespace):
         def update(pause):
             prev_state = {}
             prev_iostatus = None
-            while True:
+            errs = []
+            while len(errs) < 3:
                 if self.client._connected != prev_iostatus:
                     self.emit('iostatus', self.client._connected)
                     prev_iostatus = self.client._connected
@@ -155,10 +156,12 @@ class ClientNamespace(BaseNamespace):
                     # update
                     try:
                         self.client.update()
+                        errs = []
                     except EOFError as E:
                         # reached the 'end' of the stream, so... disconnect
                         logging.error("EOFError encountered: %s" % E)
                         self.emit('error', "EOFError encountered: %s" % E)
+                        errs.append(E)
                         #self.client.disconnect()
                     # check state & codec
                     state = self.client.state
@@ -173,6 +176,7 @@ class ClientNamespace(BaseNamespace):
                         logging.error(
                             "Failed to find codec during state update: %s" % E)
                 gevent.sleep(pause)
+            self.emit('error', 'Too many errors, disconnecting: %s' % errs)
 
         self.gid = self.spawn(update, update_pause)
 
