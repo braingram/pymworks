@@ -156,29 +156,24 @@ def report():
             if k not in gd:
                 raise ValueError('missing %s in gdata: see %s'
                                  % (k, gdata_filename))
-        print gd
         for k in ('spreadsheet', 'worksheet'):
             if k not in flask.request.args:
                 raise ValueError('missing %s in request' % k)
         ss = flask.request.args['spreadsheet']
         ws = flask.request.args['worksheet']
-        print ss, ws
         data = json.loads(flask.request.args['data'])
-        for k in data:
+        for k in data.keys():
             if '_' in k:
                 data[k.replace('_', '')] = data.pop(k)
-        print data
         gdc = gdata.spreadsheet.service.SpreadsheetsService()
         gdc.email = gd['email']
         gdc.password = gd['password']
         gdc.source = 'behavior.pymworks'
         gdc.ProgrammaticLogin()
-        print gdc
         # post data
         if ('datetime' not in data):
             data['datetime'] = time.asctime()
         r = gdc.InsertRow(data, ss, ws)
-        print r
         if not isinstance(r, gdata.spreadsheet.SpreadsheetsList):
             s = 'Report failed: %s' % r
             e = True

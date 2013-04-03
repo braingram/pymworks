@@ -57,6 +57,10 @@
         .message_list {
             list-style: none;
         }
+
+        .note_list {
+            list-style: none;
+        };
     </style>
 
     {% block head %}
@@ -189,6 +193,7 @@
             client.apply_binding('#disp_variables');
             client.apply_binding('#disp_graphs');
             client.apply_binding('#disp_messages');
+            client.apply_binding('#disp_notes');
             client.bind_variables('[var-bind]');
 
             {% block documentready_js %}
@@ -204,7 +209,7 @@
             });
             $(window).blur(stop_graphing);
             window.onbeforeunload = function () {
-                return "Varibleset saved?\nDatafile stream closed?";
+                return "Report posted?\nVaribleset saved?\nDatafile stream closed?";
             };
         });
     </script>
@@ -315,6 +320,7 @@
                 </span>
             </div>
             <div id="tb_report" class="tb_report">
+                User: <input data-bind="value: user"></input>
                 <button onclick="reports.report(client)">Publish Report</button>
             </div>
         </div> <!-- toolbar -->
@@ -324,6 +330,7 @@
                 <li><a href='#disp_controls'>Controls</a></li>
                 <li><a href='#disp_graphs'>Graphs</a></li>
                 <li><a href='#disp_messages'>Messages</a></li>
+                <li><a href='#disp_notes'>Notes</a></li>
                 {% block display_menu %}
                 {% endblock %}
             </ul>
@@ -377,6 +384,18 @@
                     <li data-bind="style: { color: color }">
                         <span data-bind="text: stype"></span>:
                         <span data-bind="text: message"></span>
+                    </li>
+                </ul>
+            </div>
+            <div id="disp_notes" class="disp_notes">
+                <form id='add_note_form'
+                    data-bind="submit: function (f) { client.add_note($('.note', f).val()); $('.note', f).val('');}">
+                    Note:
+                    <input class="note" title="Type in a note, press Enter to create"></input>
+                </form>
+                <ul class="note_list" data-bind="foreach: notes">
+                    <li>
+                        <span data-bind="text: $data"></span>
                     </li>
                 </ul>
             </div>

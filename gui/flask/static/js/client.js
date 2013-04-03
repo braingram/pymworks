@@ -309,11 +309,14 @@ mworks.client = (function () {
     client.socket = null;
     client.config = {};
 
+    client.user = ko.observable('');
+
     client.graphs = [];
     client.graph_ref = ko.observable(true);
 
     client.state = ko.observable(undefined);
 
+    client.notes = ko.observableArray();
     client.messages = ko.observableArray();
     client.max_messages = ko.observable(50);
     client.message_verbosity = ko.observable(0);
@@ -416,6 +419,11 @@ mworks.client = (function () {
                     client.throw("Invalid var-bind type: " + bt);
             };
         });
+    };
+
+    client.add_note = function (note) {
+        d = new Date();
+        client.notes.unshift('' + d.getHours() + ':' + d.getMinutes() + ':' + d.getSeconds() + ', ' + note);
     };
 
     client.log_message = function (message) {

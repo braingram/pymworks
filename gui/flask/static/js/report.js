@@ -32,7 +32,15 @@ reports.parse_graphs = function (d, client) {
 reports.parse_messages = function (messages) {
     s = '';
     for (i in messages) {
-        s += messages[i].stype + ':' + messages[i].message;
+        s += messages[i].stype + ':' + messages[i].message + '\n';
+    };
+    return s;
+};
+
+reports.parse_notes = function (notes) {
+    s = '';
+    for (i in notes) {
+        s += notes[i] + '\n';
     };
     return s;
 };
@@ -43,10 +51,12 @@ reports.generate = function (client) {
         d['animal'] = client.config['animal'];
     };
     d['host'] = '' + client.host();
+    d['user'] = '' + client.user();
     d['experiment_path'] = '' + client.experiment_path();
     d['datafile'] = '' + client.datafile();
     d['variableset'] = '' + client.variableset();
     d['messages'] = '' + reports.parse_messages(client.messages());
+    d['notes'] = '' + reports.parse_notes(client.notes());
     // host
     // experiment_path
     // datafile
