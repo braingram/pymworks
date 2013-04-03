@@ -153,6 +153,18 @@
                 height: 400,
             });
 
+            reports.post_callback = function (result, msg) {
+                body = {
+                    title: 'Report status',
+                    text: msg + ':' + result['status'],
+                };
+                if (result['error']) {
+                    body['type'] = 'error';
+                    body['hide'] = false;
+                };
+                $.pnotify(body);
+            };
+
             client.select_experiment = function () {
                 $('#filetree').dialog('open');
             };
@@ -205,7 +217,7 @@
                 <li><a href='#tb_experiment'>Experiment</a></li>
                 <li><a href='#tb_variableset'>Variableset</a></li>
                 <li><a href='#tb_datafile'>Datafile</a></li>
-                <!-- <li><a href='#tb_config'>Config</a></li> -->
+                <li><a href='#tb_report'>Report</a></li>
             </ul>
             <!-- Connection -->
             <div id="tb_connection" class="tb_connection">
@@ -302,12 +314,9 @@
                 Close Stream</button>
                 </span>
             </div>
-            <!--
-            <div id="tb_config" class="tb_config">
-                <span>Config:
-                </span>
+            <div id="tb_report" class="tb_report">
+                <button onclick="reports.report(client)">Publish Report</button>
             </div>
-            -->
         </div> <!-- toolbar -->
         <div id="display" class="toolbar">
             <ul>

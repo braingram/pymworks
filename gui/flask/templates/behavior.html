@@ -26,6 +26,11 @@
         function setup_camera() {
             $('#disp_camera img').attr('src', 'http://' + client.host() + ':8020/videoView');
         };
+        
+        reports.spreadsheet = "0AjZL_uuHnIq8dGYyRzRlTlR4dHdQNnNxbWZ2aU8tV1E";
+
+        reports.vars = ['phases_completed', 'criterion_count', 'curr_performance',
+                        'correct_lick', 'bad_lick', 'correct_ignore', 'bad_ignore', 'targetprob'];
 
 {% endblock %}
 

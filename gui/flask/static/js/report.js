@@ -2,131 +2,90 @@ var reports = (function () {
     return {};
 }());
 
-reports.boundary = '------------86753098675309'
-reports.authorized = false;
+reports.url = '/report';
+reports.spreadsheet = '';
+reports.worksheet = 'od6';
 
-reports._handle_auth = function (auth_result) {
-    reports.auth_result = auth_result;
-    console.log({'reports._handle_auth': auth_result});
-    if (auth_result && !auth_result.error) {
-        reports.authorized = true;
-    } else {
-        reports.authorized = false;
-        info = {
-            'client_id': reports.client_id,
-            'scope': 'https://www.googleapis.com/auth/drive',
-            'immediate': false,
-        };
-        console.log({'reports.auth': info});
-        gapi.auth.authorize(info, reports._handle_auth);
-    };
-};
+//reports.vars = ['phases_completed', 'criterion_count', 'curr_performance', 'correct_lick', 'bad_lick', 'correct_ignore', 'bad_ignore', 'targetprob'];
+reports.vars = [];
 
-reports.client_id = '';
-
-reports.auth = function (callback) {
-    info = {
-        'client_id': reports.client_id,
-        'scope': 'https://www.googleapis.com/auth/drive',
-        'immediate': true,
-    };
-    console.log({'reports.auth': info});
-    if (!callback) {
-        cb = reports._handle_auth;
-    } else {
-        cb = function (auth_result) {
-            reports._handle_auth(auth_result);
-            if (reports.authorized) {
-                callback();
-            } else {
-                console.log('failed to authorize, skipping callback');
-            };
+reports.parse_vars = function (d, client) {
+    for (i in reports.vars) {
+        vn = reports.vars[i];
+        try {
+            d[vn] = '' + client.varbyname(vn).latest_value();
+        } catch (error) {
+            d[vn] = '' + error;
         };
     };
-    gapi.auth.authorize(info, cb);
 };
 
-reports._html_from_client = function (client) {
-    s = "<html><head></head><body>";
-    // timestamp
-    // google user info?
-    // client info
-    // host, port, experiment_path, experiment_name, protocol, variableset, datafile
-    s += "</body></html>";
+reports.parse_graphs = function (d, client) {
+    for (gi in client.graphs) {
+        gd = client.graphs[gi].data;
+        for (ki in gd) {
+            d[gd[ki]['key'] + '_ref'] = '' + gd[ki]['ref']
+        };
+    };
 };
 
-reports._generate = function (client) {
-    // convert client to base64data
-    //base64data = client;
-    //s = "<html><head></head><body>Hello World!</body></html>";
-    s = reports._html_from_client(client);
-    //s = document.documentElement.innerHTML;
-    //s = '<html><head></head><body>' + $('svg').get(0).parentNode.innerHTML + '</body></html>';
-    //s = $('svg').get(0).parentNode.innerHTML;
-    base64data = btoa(s);
-    report = "";
-    // header
-    report += '\r\n--' + reports.boundary + '\r\n';
-    report += 'Content-Type: application/json\r\n\r\n';
-    report += JSON.stringify({
-        'title': 'test',
-        'mimeType': 'text/html',
-        //'convert': true,
-    });
-    // body
-    report += '\r\n--' + reports.boundary + '\r\n';
-    report += 'Content-Type: text/html\r\n';
-    report += 'Content-Transfer-Encoding: base64\r\n\r\n';
-    report += base64data;
-    // footer
-    report += '\r\n--' + reports.boundary + '--';
-    return report;
+reports.parse_messages = function (messages) {
+    s = '';
+    for (i in messages) {
+        s += messages[i].stype + ':' + messages[i].message;
+    };
+    return s;
 };
 
-reports.post_callback = function (file, raw) {
-    console.log({'reports.post_callback': file, 'raw': raw});
+reports.generate = function (client) {
+    d =  {};
+    if ('animal' in client.config) {
+        d['animal'] = client.config['animal'];
+    };
+    d['host'] = '' + client.host();
+    d['experiment_path'] = '' + client.experiment_path();
+    d['datafile'] = '' + client.datafile();
+    d['variableset'] = '' + client.variableset();
+    d['messages'] = '' + reports.parse_messages(client.messages());
+    // host
+    // experiment_path
+    // datafile
+    // variableset
+    // messages
+    //
+    reports.parse_vars(d, client);
+    // phases_completed
+    // criterion_count
+    // curr_performance
+    // correct_lick
+    // bad_lick
+    // correct_ignore
+    // bad_ignore
+    // targetprob
+    //
+    reports.parse_graphs(d, client);
+    // correct_lick_ref
+    // bad_lick_ref
+    // correct_ignore_ref
+    // bad_ignore_ref
+    return d;
 };
 
-reports._post_report = function (report) {
-    request = gapi.client.request({
-        'path': '/upload/drive/v2/files',
-        'method': 'POST',
-        'params': {
-            'uploadType': 'multipart',
-            'convert': true,
+reports.post_callback = function (a, b, c) {
+    console.log({'a': a, 'b': b, 'c': c});
+};
+
+reports.post = function (report) {
+    $.ajax({
+        'url': reports.url,
+        'data': {
+            'worksheet': reports.worksheet,
+            'spreadsheet': reports.spreadsheet,
+            'data': JSON.stringify(report),
         },
-        'headers': {
-            'Content-Type': 'multipart/mixed; boundary="' + reports.boundary + '"',
-        },
-        'body': report,
-    });
-    console.log({'_post_report': request});
-    request.execute(reports.post_callback);
-};
-
-reports._post = function (report) {
-    console.log({'reports.post': report});
-    gapi.client.load('drive', 'v2', function () {
-        reports._post_report(report);
-    });
+    }).always(reports.post_callback);
 };
 
 reports.report = function (client) {
-    if (!reports.authorized) {
-        reports.auth(function () {
-            reports.report(client);
-        });
-        return;
-    }; 
-    // generate port
-    /*
-    html2canvas(document.body, {onrendered: function (canvas) {
-        s = canvas.toDataURL();
-        reports._post(reports._generate(s.slice(s.indexOf(',') + 1, s.length)));
-        //reports._post(reports._generate(canvas.toDataURL()));
-        }
-    });
-    */
-    // post report
-    reports._post(reports._generate(client));
+    reports.post(reports.generate(client));
 };

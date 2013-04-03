@@ -22,6 +22,7 @@ import logging
 import os
 import pickle
 import sys
+import time
 
 update_pause = 0.3
 if len(sys.argv) > 1:
@@ -41,6 +42,8 @@ print 'logging to file: %s' % fn
 logging.basicConfig(level=logging.DEBUG, filename=fn, filemode='w', format=fmt)
 
 import flask
+import gdata
+import gdata.spreadsheet.service
 import gevent
 import gevent.monkey
 
@@ -58,6 +61,12 @@ app = flask.Flask('pymworks client')
 gevent.monkey.patch_all()
 
 animals_filename = os.path.expanduser('~/.pymworks/colony.p')
+
+gdata_filename = os.path.expanduser('~/.pymworks/gdata.p')
+gd = {}
+if os.path.exists(gdata_filename):
+    with open(gdata_filename, 'r') as f:
+        gd = pickle.load(f)
 
 
 def load_animals():
@@ -132,6 +141,47 @@ def save_animals():
         data = json.loads(flask.request.args['data'])
         with open(animals_filename, 'w') as f:
             pickle.dump(data, f)
+    except Exception as E:
+        e = True
+        s = str(E)
+    return flask.jsonify(status=s, error=e)
+
+
+@app.route('/report')
+def report():
+    s = 'Reported'
+    e = False
+    try:
+        for k in ('email', 'password'):
+            if k not in gd:
+                raise ValueError('missing %s in gdata: see %s'
+                                 % (k, gdata_filename))
+        print gd
+        for k in ('spreadsheet', 'worksheet'):
+            if k not in flask.request.args:
+                raise ValueError('missing %s in request' % k)
+        ss = flask.request.args['spreadsheet']
+        ws = flask.request.args['worksheet']
+        print ss, ws
+        data = json.loads(flask.request.args['data'])
+        for k in data:
+            if '_' in k:
+                data[k.replace('_', '')] = data.pop(k)
+        print data
+        gdc = gdata.spreadsheet.service.SpreadsheetsService()
+        gdc.email = gd['email']
+        gdc.password = gd['password']
+        gdc.source = 'behavior.pymworks'
+        gdc.ProgrammaticLogin()
+        print gdc
+        # post data
+        if ('datetime' not in data):
+            data['datetime'] = time.asctime()
+        r = gdc.InsertRow(data, ss, ws)
+        print r
+        if not isinstance(r, gdata.spreadsheet.SpreadsheetsList):
+            s = 'Report failed: %s' % r
+            e = True
     except Exception as E:
         e = True
         s = str(E)

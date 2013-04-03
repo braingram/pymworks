@@ -865,7 +865,7 @@ mworks.client = (function () {
         client.require_socket();
         client.require_connected();
         client.socket.emit('command', 'close_experiment', client.experiment_path());
-        client.info('Loading experiment: ' + client.experiment_path());
+        client.info('Closing experiment: ' + client.experiment_path());
     };
 
     client.select_experiment = function () {
