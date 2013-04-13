@@ -77,6 +77,8 @@
 
     <script>
         $.pnotify.defaults.styling = "jqueryui";
+        $.pnotify.defaults.maxonscreen = 5;
+        $.pnotify.defaults.nonblock = true;
         var client; // make this global
         var tids = [];
 
@@ -127,6 +129,11 @@
 
         $(document).ready(function () {
             console.log("document ready");
+            $(window).keydown(function (event) {
+                if (event.which == 27) {  // ESC
+                    $.pnotify_remove_all();
+                };
+            });
 
             client = mworks.client();
             client.connect_socket();
