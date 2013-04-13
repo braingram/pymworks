@@ -108,7 +108,7 @@ class HDF5DataFile(datafile.DataFile):
         name = self._codec.get(er['code'], None) if \
             (self._codec is not None) else None
         return Event(er['code'], er['time'],
-                     pickle.loads(vn[er['index']]), name, 2)
+                     pickle.loads(vn[er['index']]), name)
 
     def read_event(self):
         self.require_connected()
