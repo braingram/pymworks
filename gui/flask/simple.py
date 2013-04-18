@@ -17,6 +17,7 @@ Write
 - connect/disconnect/reconnect (like generic Stream)
 """
 
+import glob
 import json
 import logging
 import os
@@ -180,6 +181,20 @@ def report():
     except Exception as E:
         e = True
         s = str(E)
+    # also save to disk
+    try:
+        d = os.path.expanduser('~/.pymworks/reports')
+        if not os.path.exists(d):
+            os.makedirs(d)
+        b = '%s_%s' % (data['animal'], time.strftime('%Y%m%d'))
+        n = len(glob.glob(os.path.join(d, b) + '*'))
+        bfn = '%s_%i.p' % (b, n)
+        fn = os.path.join(d, bfn)
+        with open(fn, 'w') as f:
+            pickle.dump(data, f)
+        logging.debug('saved report to: %s' % fn)
+    except Exception as E:
+        logging.error('Failed to save report to disk: %s' % E)
     return flask.jsonify(status=s, error=e)
 
 
