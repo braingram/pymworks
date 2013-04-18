@@ -53,9 +53,13 @@ reports.generate = function (client) {
     d['host'] = '' + client.host();
     d['user'] = '' + client.user();
     d['experiment_path'] = '' + client.experiment_path();
-    d['datafile'] = '' + client.datafile();
+    if ((client.datafile() === "") & ('datafile' in client.config)) {
+        d['datafile'] = '' + client.config['datafile'];
+    } else {
+        d['datafile'] = '' + client.datafile();
+    };
     d['variableset'] = '' + client.variableset();
-    d['messages'] = '' + reports.parse_messages(client.messages());
+    // d['messages'] = '' + reports.parse_messages(client.messages());
     d['notes'] = '' + reports.parse_notes(client.notes());
     // host
     // experiment_path

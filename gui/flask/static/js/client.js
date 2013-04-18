@@ -526,7 +526,9 @@ mworks.client = (function () {
         if ('animal' in config) {
             // possibly define datafile
             if (client.datafile() === '') {
-                client.datafile(mworks.utils.make_filename(config['animal']));
+                fn = mworks.utils.make_filename(config['animal']);
+                client.datafile(fn);
+                client.config['datafile'] = fn;
             };
         };
 
