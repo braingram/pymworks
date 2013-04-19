@@ -11,9 +11,9 @@ import utils
 
 
 blacklisttests = [
-        #lambda s: (('name' in s.keys()) and (s['name'] == 'pixel clock')),
-        lambda s: (('type' in s.keys()) and (s['type'] == 'blankscreen')),
-        ]
+    #lambda s: (('name' in s.keys()) and (s['name'] == 'pixel clock')),
+    lambda s: (('type' in s.keys()) and (s['type'] == 'blankscreen')),
+    ]
 
 
 class Stimulus(object):
@@ -48,7 +48,11 @@ def find_stims(onscreen, current, time):
     return stims, onscreen
 
 
-def to_stims(events, as_dicts=True):
+def to_stims(events, as_dicts=True, blacklist=None):
+    if blacklist is None:
+        blacklist = blacklisttests
+    if not isinstance(blacklist, (tuple, list)):
+        blacklist = (blacklist, )
     stims = []
     onscreen = []
     for e in sorted(events, key=lambda e: e.time):
@@ -63,20 +67,23 @@ def to_stims(events, as_dicts=True):
             pixelclock = None
             for stim in e.value:
                 if not isinstance(stim, dict) or \
-                        any([t(stim) for t in blacklisttests]):
+                        any([t(stim) for t in blacklist]):
                     continue
                 if ('name' in stim.keys()) and (stim['name'] == 'pixel clock'):
                     pixelclock = stim
                 else:
                     if stimulus is not None:
-                        logging.warning("Two stimuli onscreen: %s, %s" \
-                                % (stimulus, stim))
+                        logging.warning(
+                            "Two stimuli onscreen: %s, %s"
+                            % (stimulus, stim))
                     stimulus = stim
             if stimulus is not None:
                 current.append(Stimulus(e.time, stimulus, pixelclock))
         newstims, onscreen = find_stims(onscreen, current, e.time)
         stims += newstims
-    return [s.to_dict() for s in stims]
+    if as_dicts:
+        return [s.to_dict() for s in stims]
+    return stims
 
 
 def to_pixel_clock_codes(events):
@@ -95,8 +102,9 @@ def to_pixel_clock_codes(events):
                     continue
                 if ('name' in stim.keys()) and (stim['name'] == 'pixel clock'):
                     if code is not None:
-                        logging.warning("Two codes found for event %s: %s, %s"\
-                               % (e, code, stim['bit_code']))
+                        logging.warning(
+                            "Two codes found for event %s: %s, %s"
+                            % (e, code, stim['bit_code']))
                     code = stim['bit_code']
         if codes is not None:
             codes.append((e.time, code))
@@ -104,7 +112,7 @@ def to_pixel_clock_codes(events):
 
 
 def to_trials(stim_display_events, outcome_events, remove_unknown=True,
-        duration_multiplier=2):
+              duration_multiplier=2, stim_blacklists=None):
     """
     If remove_unknown, any trials where a corresponding outcome_event cannot
     be found will be removed.
@@ -118,13 +126,14 @@ def to_trials(stim_display_events, outcome_events, remove_unknown=True,
         return []
     assert hasattr(outcome_events[0], 'name')
 
-    trials = to_stims(stim_display_events)
+    trials = to_stims(stim_display_events, to_dicts=True,
+                      blacklist=stim_blacklists)
 
     if (len(trials) == 0):
         return []
 
-    outcomes = utils.sync(outcome_events, trials, \
-            direction=1, mkey=lambda x: x['time'])
+    outcomes = utils.sync(outcome_events, trials,
+                          direction=1, mkey=lambda x: x['time'])
 
     assert len(trials) == len(outcomes)
     unknowns = []
@@ -132,7 +141,7 @@ def to_trials(stim_display_events, outcome_events, remove_unknown=True,
         dtest = lambda t, o: True
     else:
         dtest = lambda t, o: \
-                o.time < (t['time'] + t['duration'] * duration_multiplier)
+            o.time < (t['time'] + t['duration'] * duration_multiplier)
     for i in xrange(len(trials)):
         if (outcomes[i] is not None) and dtest(trials[i], outcomes[i]):
             trials[i]['outcome'] = outcomes[i].name
