@@ -35,7 +35,7 @@ def make_match_string(key, to_code):
         codes = []
     if not isinstance(codes, (tuple, list)):
         codes = [codes, ]
-    return ' | '.join(['code == %i' % c for c in codes])
+    return ' | '.join(['(code == %i)' % c for c in codes])
 
 
 class HDF5Event(tables.IsDescription):

@@ -126,7 +126,7 @@ def to_trials(stim_display_events, outcome_events, remove_unknown=True,
         return []
     assert hasattr(outcome_events[0], 'name')
 
-    trials = to_stims(stim_display_events, to_dicts=True,
+    trials = to_stims(stim_display_events, as_dicts=True,
                       blacklist=stim_blacklists)
 
     if (len(trials) == 0):
