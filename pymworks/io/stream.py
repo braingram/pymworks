@@ -44,6 +44,10 @@ class EventStream(Stream):
         self.port = port
         self.timeout = timeout
         self.safe = True
+        # set these to numerical values so find_time_range is not triggered
+        # and so called to min and max in read_event don't throw errors
+        self._mintime = float('inf')
+        self._maxtime = float('-inf')
         if autoconnect:
             self.connect()
 
@@ -102,10 +106,16 @@ class EventStream(Stream):
         safe = self.safe if safe is None else safe
         self.require_connected()
         if safe is False:
-            return read_event_from_ldo(self.rldo, self._codec)
+            e = read_event_from_ldo(self.rldo, self._codec)
+            self._mintime = min(e.time, self._mintime)
+            self._maxtime = max(e.time, self._maxtime)
+            return e
         r, _, _ = select.select([self.rsocket], [], [], self.timeout)
         if len(r):
-            return read_event_from_ldo(self.rldo, self._codec)
+            e = read_event_from_ldo(self.rldo, self._codec)
+            self._mintime = min(e.time, self._mintime)
+            self._maxtime = max(e.time, self._maxtime)
+            return e
         else:
             return None
 
