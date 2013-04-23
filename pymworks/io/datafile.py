@@ -128,6 +128,30 @@ class DataFile(Source):
     # get_reverse_codec
     # process_codec_event
     # find_codec
+
+    def _find_time_range(self):
+        self.restart_file()
+        e = self.read_event()
+        if e is None:
+            raise ValueError("Failed to read first event[%s]" % e)
+        self._mintime = e.time
+        self._maxtime = e.time
+        while e is not None:
+            self._mintime = min(e.time, self._mintime)
+            self._maxtime = max(e.time, self._maxtime)
+            e = self.read_event()
+        return self._mintime, self._maxtime
+
+    def get_minimum_time(self):
+        if self._mintime is None:
+            self._find_time_range()
+        return self._mintime
+
+    def get_maximum_time(self):
+        if self._maxtime is None:
+            self._find_time_range()
+        return self._maxtime
+
     def find_codec(self):
         if self._codec is None:
             cevs = self.get_events(0)
@@ -160,9 +184,18 @@ class DataFile(Source):
         events = []
         self.restart_file()
         e = self.read_event()
+        if e is None:
+            raise ValueError("Failed to read first event[%s]" % e)
+        andtime = ((self._mintime is None) or (self._maxtime is None))
+        if andtime:
+            self._mintime = e.time
+            self._maxtime = e.time
         while e is not None:
             if kt(e) and tt(e):
                 events.append(e)
+            if andtime:
+                self._mintime = min(e.time, self._mintime)
+                self._maxtime = max(e.time, self._maxtime)
             e = self.read_event()
         return sorted(events, key=lambda e: e.time)
 
@@ -204,6 +237,8 @@ class IndexedDataFile(DataFile):
                     raise TypeError("loaded index(%s) was wrong type: %s" %
                                     (self.index_filename, type(self._index)))
                 self._parse_index()
+                if self._mintime is None:
+                    raise Exception  # this was a bad index
                 if self._check_hash:
                     file_hash = self._hash_file()
                     if self._hash != file_hash:
@@ -227,9 +262,15 @@ class IndexedDataFile(DataFile):
         self.restart_file()
         position = self.file.tell()
         event = self.read_event()
+        if event is None:
+            raise ValueError("Failed to read first event[%s]" % event)
+        self._mintime = event.time
+        self._maxtime = event.time
         while event is not None:
             self._index[event.code].append(position)
             position = self.file.tell()
+            self._mintime = min(event.time, self._mintime)
+            self._maxtime = max(event.time, self._maxtime)
             event = self.read_event()
 
         self._index = dict(self._index)
