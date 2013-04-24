@@ -50,16 +50,16 @@ def remove_non_incrementing(events):
 
     Does a forward, followed by a backwards remove
     """
-    return remove( \
-                remove(events[:], \
-                    test=lambda a, b: b.value > (a.value + 1), \
-                    recurse=True, direction=1)[:], \
-                test=lambda a, b: b.value < (a.value + 1), \
-                recurse=True, direction=-1)
+    return remove(
+        remove(events[:],
+               test=lambda a, b: b.value > (a.value + 1),
+               recurse=True, direction=1)[:],
+        test=lambda a, b: b.value < (a.value + 1),
+        recurse=True, direction=-1)
 
 
-def remove(events, test=lambda a, b: b.value > (a.value + 1), \
-        recurse=True, direction=1):
+def remove(events, test=lambda a, b: b.value > (a.value + 1),
+           recurse=True, direction=1):
     bad_indices = []
     if direction == 1:
         ievents = xrange(len(events) - 1)
@@ -75,10 +75,10 @@ def remove(events, test=lambda a, b: b.value > (a.value + 1), \
     return events
 
 
-def removeforward(events, test=lambda a, b: b.value > (a.value + 1), \
-        recurse=True):
+def removeforward(events, test=lambda a, b: b.value > (a.value + 1),
+                  recurse=True):
     """
-    Remove events that do not satisfy test(events[i], events[i+1])
+    Remove events that satisfy test(events[i], events[i+1])
     """
     bad_indices = []
     for i in xrange(len(events) - 1):
@@ -91,10 +91,10 @@ def removeforward(events, test=lambda a, b: b.value > (a.value + 1), \
     return events
 
 
-def removebackward(events, test=lambda a, b: b.value < (a.value + 1), \
-        recurse=True):
+def removebackward(events, test=lambda a, b: b.value < (a.value + 1),
+                   recurse=True):
     """
-    Remove events that do not satisfy test(events[i-1], events[i])
+    Remove events that satisfy test(events[i-1], events[i])
     """
     bad_indices = []
     for i in xrange(1, len(events)):
