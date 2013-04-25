@@ -40,7 +40,7 @@ for i in xrange(8, 0, -1):
 if os.path.exists(fn):
     os.rename(fn, '%s.0' % fn)
 print 'logging to file: %s' % fn
-logging.basicConfig(level=logging.DEBUG, filename=fn, filemode='w', format=fmt)
+logging.basicConfig(level=logging.INFO, filename=fn, filemode='w', format=fmt)
 
 import flask
 import gdata
@@ -96,7 +96,7 @@ _, app = flask_filetree.make_blueprint(
 
 @app.route('/t/<template>')
 def template(template):
-    logging.debug('loading template: /t/%s' % template)
+    logging.info('loading template: /t/%s' % template)
     return flask.render_template(template)
 
 
@@ -106,7 +106,7 @@ def animal_selection():
     animals = load_animals()
     templates = [t for t in flask.current_app.jinja_env.list_templates()
                  if t not in ['animals.html', 'filetree_test.html']]
-    logging.debug('selecting animal from %s' % animals)
+    logging.info('selecting animal from %s' % animals)
     return flask.render_template(
         "animals.html", animals=animals, templates=templates)
 
@@ -120,17 +120,17 @@ def default():
 def select_animal(animal):
     # load animals
     animals = load_animals()
-    logging.debug('loading animal: /a/%s' % animal)
+    logging.info('loading animal: /a/%s' % animal)
     if animal in animals:
         cfg = animals[animal]
         if 'animal' not in cfg:
             cfg['animal'] = animal
         t = cfg.get('template', 'behavior.html')
-        logging.debug('rendering template %s for animal %s with config %s'
-                      % (t, animal, cfg))
+        logging.info('rendering template %s for animal %s with config %s'
+                     % (t, animal, cfg))
         return flask.render_template(t, animal=animal, session_config=cfg)
     else:
-        logging.debug('failed to find animal %s in %s' % (animal, animals))
+        logging.error('failed to find animal %s in %s' % (animal, animals))
         return flask.abort(404)
 
 
@@ -192,7 +192,7 @@ def report():
         fn = os.path.join(d, bfn)
         with open(fn, 'w') as f:
             pickle.dump(data, f)
-        logging.debug('saved report to: %s' % fn)
+        logging.info('saved report to: %s' % fn)
     except Exception as E:
         logging.error('Failed to save report to disk: %s' % E)
     return flask.jsonify(status=s, error=e)

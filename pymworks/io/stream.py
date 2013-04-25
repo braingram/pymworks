@@ -400,7 +400,7 @@ class Client(BufferedEventStream):
                   '-l %s %s /usr/bin/open ' \
                   '/Applications/MWServer.app' % \
                   (timeout, user, self.host)
-        logging.debug("Launching: %s" % cmd)
+        logging.info("Launching: %s" % cmd)
         if logging.root.level <= logging.DEBUG:
             kwargs = dict(stderr=sys.stderr, stdout=sys.stdout)
         else:
@@ -432,6 +432,6 @@ class Client(BufferedEventStream):
                     "Failed to start server at %s@%s: %s" %
                     (self.user, self.host, error))
             else:
-                logging.debug("Started server at %s@%s" %
-                              (self.user, self.host))
+                logging.info("Started server at %s@%s" %
+                             (self.user, self.host))
         BufferedEventStream.connect(self)
