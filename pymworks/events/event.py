@@ -52,7 +52,7 @@ class Event(collections.Mapping):
                 self.time, self.value)
 
     def __eq__(self, other):
-        return (self.name == other.name) and (self.time == other.name) and \
+        return (self.name == other.name) and (self.time == other.time) and \
                 (self.value == other.value)
 
     def __ne__(self, other):
