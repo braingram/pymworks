@@ -86,6 +86,12 @@ class HDF5DataFile(datafile.DataFile):
     #def find_codec(self):
     #    pass
 
+    def _find_time_range(self):
+        t = self.file.getNode(self._events_path)
+        self._mintime = min(r['time'] for r in t)
+        self._maxtime = max(r['time'] for r in t)
+        return self._mintime, self._maxtime
+
     def _setup_file(self):
         validate_path(self._events_path)
         if self._events_path not in self.file:

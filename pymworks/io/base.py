@@ -107,9 +107,13 @@ class Source(IODevice):
         pass
 
     def get_minimum_time(self):
+        if self._mintime is None:
+            self._find_time_range()
         return self._mintime
 
     def get_maximum_time(self):
+        if self._maxtime is None:
+            self._find_time_range()
         return self._maxtime
 
     # ------ callback ------

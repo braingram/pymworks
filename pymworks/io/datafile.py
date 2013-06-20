@@ -142,15 +142,15 @@ class DataFile(Source):
             e = self.read_event()
         return self._mintime, self._maxtime
 
-    def get_minimum_time(self):
-        if self._mintime is None:
-            self._find_time_range()
-        return self._mintime
+    #def get_minimum_time(self):
+    #    if self._mintime is None:
+    #        self._find_time_range()
+    #    return self._mintime
 
-    def get_maximum_time(self):
-        if self._maxtime is None:
-            self._find_time_range()
-        return self._maxtime
+    #def get_maximum_time(self):
+    #    if self._maxtime is None:
+    #        self._find_time_range()
+    #    return self._maxtime
 
     def find_codec(self):
         if self._codec is None:
