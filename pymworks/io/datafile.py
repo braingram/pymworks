@@ -285,7 +285,7 @@ class IndexedDataFile(DataFile):
 
         # get codec and time ranges
         self._index.update({
-            '_codec': self.codec,
+            #'_codec': self.codec,
             '_mintime': self._mintime,
             '_maxtime': self._maxtime,
             '_hash': self._hash_file(),
@@ -305,9 +305,10 @@ class IndexedDataFile(DataFile):
 
     def _parse_index(self):
         self._hash = self._index['_hash']
-        self._codec = self._index['_codec']
+        #self._codec = self._index['_codec']
         self._mintime = self._index['_mintime']
         self._maxtime = self._index['_maxtime']
+        self.find_codec()
 
     def _hash_file(self):
         md5 = hashlib.md5()

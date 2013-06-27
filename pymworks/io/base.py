@@ -57,6 +57,8 @@ class Source(IODevice):
         self._mintime = None
         self._maxtime = None
         self._callbacks = []
+        self.variables = []
+        self.variable_groups = {}
         self.register_callback(0, self.process_codec_event)
         if autoconnect:
             self.connect()
@@ -92,6 +94,12 @@ class Source(IODevice):
              event.value.iteritems()] +
             [(0, '#codec'), (1, '#systemEvent'),
              (2, '#components'), (3, '#termination')])
+        self.variables = event.value
+        self.variable_groups = {}
+        for (_, v) in self.variables.iteritems():
+            for vg in v['groups']:
+                self.variable_groups[vg] = \
+                    self.variable_groups.get(vg, []) + [v['tagname'], ]
 
     def find_codec(self, **kwargs):
         if self._codec is None:
