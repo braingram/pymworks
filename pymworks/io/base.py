@@ -106,6 +106,12 @@ class Source(IODevice):
     def get_events(self, key=None, time_range=None):
         pass
 
+    def __iter__(self):
+        e = self.read_event()
+        while e is not None:
+            yield e
+            e = self.read_event()
+
     def get_minimum_time(self):
         if self._mintime is None:
             self._find_time_range()

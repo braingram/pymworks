@@ -175,6 +175,11 @@ class DataFile(Source):
                             "time, and/or value" % self.file.tell())
             return None
 
+    def __iter__(self):
+        self.restart_file()
+        for e in Source.__iter__(self):
+            yield e
+
     def write_event(self, event):
         raise NotImplementedError("Datafile does not allow writing")
 
@@ -360,8 +365,15 @@ class DataFileWriter(Sink):
         Sink.disconnect(self)
 
     def write_event(self, event):
+        """
+        Can accepts tuples and lists of events
+        or mwk event sources (see Source.__iter__)
+        """
         self.require_connected()
-        self.ldo._marshal([event.code, event.time, event.value])
+        if isinstance(event, Event):
+            event = (event, )
+        for e in event:
+            self.ldo._marshal([e.code, e.time, e.value])
 
 
 def open_file(fn, indexed=True):
@@ -372,11 +384,7 @@ def open_file(fn, indexed=True):
 
 def save_file(mwks, filename, index=None):
     w = DataFileWriter(filename)
-    mwks.restart_file()
-    e = mwks.read_event()
-    while e is not None:
-        w.write_event(e)
-        e = mwks.read_event()
+    w.write_event(mwks)
     if (index is not None) and hasattr(mwks, '_save_index'):
         mwks._save_index(index)
     w.disconnect()

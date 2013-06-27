@@ -143,13 +143,14 @@ class HDF5DataFile(datafile.DataFile):
     def write_event(self, event, flush_every_n=100):
         """
         Can accepts tuples and lists of events
+        or mwk event sources (see Source.__iter__)
         """
         if not (('w' in self.file.mode) or ('a' in self.file.mode)):
             raise IOError('HDF5DataFile.file is not writable: %s'
                           % self.file.mode)
         self._setup_file()
         self._cache_nodes()
-        if not isinstance(event, (tuple, list)):
+        if isinstance(event, Event):
             event = (event, )
         row = self._events_node.row
         for (i, e) in enumerate(event):
