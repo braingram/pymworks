@@ -52,6 +52,8 @@ class HDF5DataFile(datafile.DataFile):
                                    autoconnect=False, autoresolve=False)
         self._events_path = events_path
         self._values_path = values_path
+        self._events_node = None
+        self._values_node = None
         self._vsize = 1.0
         # test if filename is actually a file
         if isinstance(filename, tables.file.File):
@@ -65,11 +67,18 @@ class HDF5DataFile(datafile.DataFile):
         if autoconnect:
             self.connect()
 
+    def _cache_nodes(self):
+        if self._events_node is None:
+            self._events_node = self.file.getNode(self._events_path)
+        if self._values_node is None:
+            self._values_node = self.file.getNode(self._values_path)
+
     def connect(self):
         if self._connected:
             return
         if self.file is None:
             self.file = tables.openFile(self.filename, 'r')
+            self._cache_nodes()
         datafile.Source.connect(self)
 
     def disconnect(self):
@@ -77,6 +86,8 @@ class HDF5DataFile(datafile.DataFile):
             return
         self.file.flush()
         self.file.close()
+        self._events_node = None
+        self._values_node = None
         datafile.Source.disconnect(self)
 
     def restart_file(self):
@@ -87,9 +98,9 @@ class HDF5DataFile(datafile.DataFile):
     #    pass
 
     def _find_time_range(self):
-        t = self.file.getNode(self._events_path)
-        self._mintime = min(r['time'] for r in t)
-        self._maxtime = max(r['time'] for r in t)
+        self._cache_nodes()
+        self._mintime = min(r['time'] for r in self._events_node)
+        self._maxtime = max(r['time'] for r in self._events_node)
         return self._mintime, self._maxtime
 
     def _setup_file(self):
@@ -108,23 +119,26 @@ class HDF5DataFile(datafile.DataFile):
                 self.file.createGroup(r, gn)
             self.file.createVLArray(g, n, tables.VLStringAtom(),
                                     expectedsizeinMB=self._vsize)
+        # force recaching of nodes
+        self._events_node = None
+        self._values_node = None
+        self._cache_nodes()
 
-    def _parse_event_row(self, er, vn=None):
-        vn = self.file.getNode(self._values_path) if vn is None else vn
+    def _parse_event_row(self, er):
+        self._cache_nodes()
         name = self._codec.get(er['code'], None) if \
             (self._codec is not None) else None
         return Event(er['code'], er['time'],
-                     pickle.loads(vn[er['index']]), name)
+                     pickle.loads(self._values_node[er['index']]), name)
 
     def read_event(self):
         self.require_connected()
         # get next event, or None
-        en = self.file.getNode(self._events_path)
-        if (self._event_index >= en.nrows):
+        self._cache_nodes()
+        if (self._event_index >= self._events_node.nrows):
             return None
-        i = self._event_index
         self._event_index += 1
-        return self._parse_event_row(en[i])
+        return self._parse_event_row(self._events_node[self._event_index - 1])
 
     def write_event(self, event, flush_every_n=100):
         """
@@ -134,35 +148,33 @@ class HDF5DataFile(datafile.DataFile):
             raise IOError('HDF5DataFile.file is not writable: %s'
                           % self.file.mode)
         self._setup_file()
+        self._cache_nodes()
         if not isinstance(event, (tuple, list)):
             event = (event, )
-        en = self.file.getNode(self._events_path)
-        row = en.row
-        va = self.file.getNode(self._values_path)
+        row = self._events_node.row
         for (i, e) in enumerate(event):
             row['code'] = e.code
             row['time'] = e.time
             vs = pickle.dumps(e.value, 2)
-            row['index'] = len(va)
-            va.append(vs)
+            row['index'] = len(self._values_node)
+            self._values_node.append(vs)
             row.append()
             if (i % flush_every_n == 0):
-                va.flush()
-                en.flush()
-        va.flush()
-        en.flush()
+                self._values_node.flush()
+                self._events_node.flush()
+        self._values_node.flush()
+        self._events_node.flush()
 
     def get_events(self, key=None, time_range=None):
         ms = make_match_string(key, self.to_code)
-        en = self.file.getNode(self._events_path)
-        vn = self.file.getNode(self._values_path)
+        self._cache_nodes()
         if ms == '':
-            evs = lambda: en
+            evs = lambda: self._events_node
         else:
-            evs = lambda: en.where(ms)
+            evs = lambda: self._events_node.where(ms)
         if time_range is not None:
             ttest = datafile.make_time_test(time_range, self.to_code)
-            return [self._parse_event_row(e, vn) for e in evs()
+            return [self._parse_event_row(e) for e in evs()
                     if ttest(e)]
         else:
-            return [self._parse_event_row(e, vn) for e in evs()]
+            return [self._parse_event_row(e) for e in evs()]
