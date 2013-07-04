@@ -66,6 +66,29 @@ mworks.utils = (function ($) {
         return animal + '_' + (y < 10 ? '0' : '' ) + y + (m < 10 ? '0' : '') + m + (d < 10 ? '0' : '') + d + suffix;
     };
 
+    utils.match_type = function (a, b) {
+        //return a;
+        // try to convert a to type b
+        if (b == null) {  // cannot cast a to null
+            return a;
+        };
+        if (typeof(b) == 'string') {
+            return String(a);
+        };
+        if (typeof(b) == 'number') {
+            return Number(a);
+        };
+        if (typeof(b) == 'object') {
+            return a;
+            /*
+            if (typeof(a) == 'string') {
+                return io.JSON.parse(a);
+            };
+            */
+        };
+        return a;
+    };
+
     return utils;
 }(jQuery));
 
@@ -235,6 +258,7 @@ mworks.variable = function (name, send_event) {
             return variable.events().length ? variable.events()[variable.events().length - 1].value : null;
         },
         write: function (value) {
+            value = mworks.utils.match_type(value, variable.latest_value())
             send_event(variable.name(), value);
         },
         owner: this
@@ -245,6 +269,7 @@ mworks.variable = function (name, send_event) {
             return variable.events().length ? variable.events()[variable.events().length - 1] : {value: null};
         },
         write: function (value) {
+            value = mworks.utils.match_type(value, variable.latest_value())
             send_event(variable.name(), value);
         },
         owner: this
@@ -367,6 +392,7 @@ mworks.client = (function () {
     client.loaded = ko.observable(false);
 
     client.vars = ko.observableArray();
+    client.variable_groups = {};
     client.codec = {};
     client.unstored_events = [];
 
@@ -679,6 +705,14 @@ mworks.client = (function () {
          * datafile error
          * variableset : does not exist!
          */
+        /*
+        if ('variable groups' in state) {
+            if (!mworks.utils.objects_equal(client.variable_groups, state['variable groups'])) {
+                // update groups
+            };
+        };
+        */
+
         if ('codec' in state) {
             // test equality of client.codec and state.codec
             if (!mworks.utils.objects_equal(client.codec, state.codec)) {
