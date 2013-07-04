@@ -227,6 +227,7 @@ class ClientNamespace(BaseNamespace):
                     state = self.client.state
                     try:
                         state['codec'] = self.client.codec
+                        state['variable groups'] = self.client.variable_groups
                         if prev_state != state:
                             print 'State:', state
                             self.emit('state', state)
@@ -253,7 +254,7 @@ class ClientNamespace(BaseNamespace):
         super(ClientNamespace, self).disconnect(*args, **kwargs)
 
     def emit_event(self, event):
-        logging.debug("received event from websocket: %s" % event)
+        logging.debug("sending event from websocket: %s" % event)
         self.emit('event', dict(event))
 
     #def on_register(self, key):
@@ -265,7 +266,7 @@ class ClientNamespace(BaseNamespace):
     #            self.emit('error', 'failed to register %s, %s' % (key, E))
 
     def on_event(self, event):
-        logging.debug("sending event on websocket: %s" % event)
+        logging.debug("received event on websocket: %s" % event)
         if (not isinstance(event, dict)) or ('key' not in event) or \
                 ('value' not in event):
             self.emit('error', 'Invalid event: %s' % event)
