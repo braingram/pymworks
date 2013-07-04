@@ -243,7 +243,8 @@ class IndexedDataFile(DataFile):
                                     (self.index_filename, type(self._index)))
                 self._parse_index()
                 if self._mintime is None:
-                    raise Exception  # this was a bad index
+                    raise Exception(
+                        "Found bad index [_mintime is None], reindexing")
                 if self._check_hash:
                     file_hash = self._hash_file()
                     if self._hash != file_hash:
