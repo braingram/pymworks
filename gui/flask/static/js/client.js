@@ -66,6 +66,17 @@ mworks.utils = (function ($) {
         return animal + '_' + (y < 10 ? '0' : '' ) + y + (m < 10 ? '0' : '') + m + (d < 10 ? '0' : '') + d + suffix;
     };
 
+    utils.nan_test = function (v) {
+        switch (typeof(v)) {
+            case 'number':
+                return isNaN(v);
+            case 'string':
+                return (v == 'NaN');
+            default:
+                return false;
+        };
+    };
+
     utils.match_type = function (a, b) {
         //return a;
         // try to convert a to type b
@@ -76,7 +87,12 @@ mworks.utils = (function ($) {
             return String(a);
         };
         if (typeof(b) == 'number') {
-            return Number(a);
+            v = Number(a);
+            if ((v == a) | (utils.nan_test(v) & utils.nan_test(a))) {
+                return v;
+            };
+            throw "Matching error: could not convert " + a + " to " + typeof(b);
+            return undefined;
         };
         if (typeof(b) == 'object') {
             return a;
@@ -258,8 +274,14 @@ mworks.variable = function (name, send_event) {
             return variable.events().length ? variable.events()[variable.events().length - 1].value : null;
         },
         write: function (value) {
-            value = mworks.utils.match_type(value, variable.latest_value())
-            send_event(variable.name(), value);
+            try {
+                value = mworks.utils.match_type(value, variable.latest_value());
+                send_event(variable.name(), value);
+            } catch (error) {
+                console.log(error);
+                // reset value, but don't send
+                variable.latest_value.notifySubscribers()
+            };
         },
         owner: this
     });
@@ -269,8 +291,14 @@ mworks.variable = function (name, send_event) {
             return variable.events().length ? variable.events()[variable.events().length - 1] : {value: null};
         },
         write: function (value) {
-            value = mworks.utils.match_type(value, variable.latest_value())
-            send_event(variable.name(), value);
+            try {
+                value = mworks.utils.match_type(value, variable.latest_value());
+                send_event(variable.name(), value);
+            } catch (error) {
+                console.log(error);
+                // reset value, but don't send
+                variable.latest_value.notifySubscribers()
+            };
         },
         owner: this
     });
