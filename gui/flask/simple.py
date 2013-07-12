@@ -47,6 +47,7 @@ import gdata
 import gdata.spreadsheet.service
 import gevent
 import gevent.monkey
+import jinja2
 
 from socketio import socketio_manage
 from socketio.namespace import BaseNamespace
@@ -59,6 +60,13 @@ import pymworks
 
 
 app = flask.Flask('pymworks client')
+# add additional home folder templates
+template_loader = jinja2.ChoiceLoader([
+    jinja2.FileSystemLoader(os.path.expanduser('~/.pymworks/templates')),
+    app.jinja_loader,
+])
+app.jinja_loader = template_loader
+
 gevent.monkey.patch_all()
 
 animals_filename = os.path.expanduser('~/.pymworks/colony.p')
