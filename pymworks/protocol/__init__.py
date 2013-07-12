@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
 from . import variables
+from . import template
 from . import utils
 
 
-__all__ = ['variables', 'utils']
+__all__ = ['variables', 'template', 'utils']
 
 try:
     from . import states

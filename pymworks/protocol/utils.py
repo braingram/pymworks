@@ -1,18 +1,23 @@
 #!/usr/bin/env python
 
+import os
+
 from .. import utils
-#import xml.etree.ElementTree
 
 
 def load(fn):
     return utils.ETree(file=fn)
-    #e = xml.etree.ElementTree.parse(fn)
-    #return e
+
+
+def resolve_protocol(e):
+    if isinstance(e, (str, unicode)):
+        return load(os.path.expanduser(e))
+    return e
 
 
 def parse_exp(v):
-    for c in ['(', ')', '+', '-', '/', '#GT', '#LT', \
-            '#AND', '#OR', '#NOT', '#LE', '#GE', '==']:
+    for c in ['(', ')', '+', '-', '/', '#GT', '#LT',
+              '#AND', '#OR', '#NOT', '#LE', '#GE', '==']:
         v = v.replace(c, ' ')
     return v.split()
 

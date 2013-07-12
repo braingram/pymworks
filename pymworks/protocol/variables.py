@@ -6,7 +6,7 @@ Check that all variables are used
 import collections
 import re
 
-import utils
+from . import utils
 
 
 def iscap(s):
@@ -77,11 +77,16 @@ def check_name(name):
 
 
 def get_all(e):
+    e = utils.resolve_protocol(e)
     return list(e.iter('variable'))
 
 
-def names(variables):
+def to_names(variables):
     return [v.attrib['tag'] for v in variables]
+
+
+def get_names(e):
+    return to_names(get_all(e))
 
 
 def check_naming_convention(names):
@@ -92,6 +97,7 @@ def check_naming_convention(names):
 
 
 def find_variable_refs(e, vs, refs=None):
+    e = utils.resolve_protocol(e)
     refs = dict([(v, []) for v in vs]) if refs is None else refs
     # check each node, skipping anything in variables
     for n in utils.iter_nodes(e, [lambda n: n.tag == 'variables']):
@@ -103,12 +109,12 @@ def find_variable_refs(e, vs, refs=None):
 
 
 def find_refs(e):
-    vs = names(get_all(e))
+    vs = to_names(get_all(e))
     return find_variable_refs(e, vs)
 
 
 def find_unused_variables(e):
-    vs = names(get_all(e))
+    vs = to_names(get_all(e))
     refs = find_variable_refs(e, vs)
     return [k for k in refs if len(refs[k]) == 0]
 
@@ -119,6 +125,7 @@ def find_groupless_variables(e):
 
 
 def targeted_find_variable_refs(e, v):
+    e = utils.resolve_protocol(e)
     refs = []
     # search
     for r in e.findall("//action[@type='assignment']"):
@@ -145,8 +152,8 @@ def targeted_find_variable_refs(e, v):
         if v == r.attrib['variable']:
             refs.append(r)
     for t in e.findall("//staircase[@type='start_timer']"):
-        if v in [r.attrib[k] for k in \
-                ['watch', 'output', 'lower_limit', 'upper_limit', \
-                'step_size']]:
+        if v in [r.attrib[k] for k in
+                 ['watch', 'output', 'lower_limit', 'upper_limit',
+                  'step_size']]:
             refs.append(r)
     return refs
