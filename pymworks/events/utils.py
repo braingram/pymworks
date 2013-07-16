@@ -39,18 +39,18 @@ def to_array(events, value_type=None):
         vtype = type(events[0].value) if len(events) else 'u1'
     else:
         vtype = value_type
-    return numpy.array(map(lambda e: (e.code, e.time, e.value), events), \
-            dtype=[('code', 'u2'), \
-            ('time', 'u8'), ('value', vtype)])
+    return numpy.array(
+        map(lambda e: (e.code, e.time, e.value), events),
+        dtype=[('code', 'u2'), ('time', 'u8'), ('value', vtype)])
 
 
 def fake_codec_event(codec=None, time=None):
-    dcodec = { \
-            0: '#codec',
-            1: '#systemEvent',
-            2: '#components',
-            3: '#termination',
-            }
+    dcodec = {
+        0: '#codec',
+        1: '#systemEvent',
+        2: '#components',
+        3: '#termination',
+    }
     if codec is not None:
         dcodec.update(codec)
     for k in dcodec:
@@ -89,15 +89,33 @@ def sync(slave, master, direction=-1, skey=None, mkey=None):
 
     matches = []
     for m in master:
-        last = None
+        match = None
+        mt = mkey(m)
         for s in sslaves:
-            if end(skey(s), mkey(m)):
-                if (last is not None) and ttest(skey(last), mkey(m)):
-                    matches.append(last)
-                else:
-                    matches.append(None)
+            if end(skey(s), mt):
                 break
-            last = s
+            if ttest(skey(s), mt):
+                match = s
+        matches.append(match)
     while len(matches) < len(master):
         matches.append(None)
     return matches
+
+
+def test_sync():
+    s = [5, 15, 17, 25]
+    m = [0, 10, 20, 30]
+    ks = (lambda s: s, lambda m: m)
+
+    t = sync(s, m, 1, *ks)
+    assert t == [5, 15, 25, None]
+
+    t = sync(s, m, -1, *ks)
+    assert t == [None, 5, 17, 25]
+
+    t = sync(s, m, 0, *ks)
+    assert t == [None, None, None, None]
+
+    s = [0, 11, 20, 31]
+    t = sync(s, m, 0, *ks)
+    assert t == [0, None, 20, None]
