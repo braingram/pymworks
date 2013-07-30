@@ -64,11 +64,12 @@ var colony = (function () {
         if (colony.selected() === undefined) {
             colony.select_animal(colony.animals()[colony.animals().length - 1]);
         };
+        colony.animals.sort(function (a, b) { return a['name']() == b['name']() ? 0 : (a['name']() > b['name']() ? 1 : -1)})
     };
 
     colony.create_animal = function () {
+        colony.selected(undefined);  // allow for auto-selection
         colony.add_animal({});
-        colony.select_animal(colony.animals()[colony.animals().length - 1]);
     };
 
     colony.load_animal = function () {
@@ -112,7 +113,8 @@ var colony = (function () {
             data = $.toJSON(data);
             // post data to /save_animals
             console.log({'save_animals:data': data});
-            $.getJSON('/save_animals', {'data': data}, colony.saved_animals_callback);
+            //$.getJSON('/save_animals', {'data': data}, colony.saved_animals_callback);
+            $.post('/save_animals', {'data': data}, colony.saved_animals_callback, "json")
         } catch (error) {
             $.pnotify({title: 'Error saving animals', text: '' + error, type: 'error', hide: false});
         };

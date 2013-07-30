@@ -142,12 +142,13 @@ def select_animal(animal):
         return flask.abort(404)
 
 
-@app.route('/save_animals')
+@app.route('/save_animals', methods=['GET', 'POST'])
 def save_animals():
     s = 'Saved to: %s' % animals_filename
     e = False
     try:
-        data = json.loads(flask.request.args['data'])
+        #data = json.loads(flask.request.args['data'])
+        data = json.loads(flask.request.form['data'])
         with open(animals_filename, 'w') as f:
             pickle.dump(data, f)
     except Exception as E:
