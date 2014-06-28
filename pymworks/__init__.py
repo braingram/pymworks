@@ -13,6 +13,8 @@ import events
 import protocol
 import stats
 
+__version__ = "2.0.1"
+
 __all__ = ['datafile', 'Event', 'DataFile', 'IndexedDataFile', 'open_file',
            'save_file', 'save', 'stream', 'Client', 'load', 'events',
            'protocol', 'stats']
